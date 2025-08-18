@@ -1,4 +1,6 @@
 import { CommentCard } from "./CommentCard"
+import { TrendingDiscussions } from "./TrendingDiscussions"
+import { SearchSidebar } from "./SearchSidebar"
 
 // Mock data para demonstração
 const mockComments = [
@@ -54,30 +56,41 @@ const mockComments = [
 
 export function OpinionFeed() {
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-tech bg-clip-text text-transparent mb-2">
-            Tech Opinions
-          </h1>
-          <p className="text-muted-foreground">
-            Compartilhe sua opinião sobre tecnologia
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="flex max-w-7xl mx-auto">
+        {/* Left Sidebar - Trending Discussions */}
+        <TrendingDiscussions />
+        
+        {/* Main Feed */}
+        <div className="flex-1 py-8 px-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold bg-gradient-tech bg-clip-text text-transparent mb-2">
+                Tech Opinions
+              </h1>
+              <p className="text-muted-foreground">
+                Compartilhe sua opinião sobre tecnologia
+              </p>
+            </div>
+            
+            <div className="space-y-6">
+              {mockComments.map((comment) => (
+                <CommentCard
+                  key={comment.id}
+                  id={comment.id}
+                  author={comment.author}
+                  content={comment.content}
+                  agreeCount={comment.agreeCount}
+                  disagreeCount={comment.disagreeCount}
+                  timestamp={comment.timestamp}
+                />
+              ))}
+            </div>
+          </div>
         </div>
         
-        <div className="space-y-6">
-          {mockComments.map((comment) => (
-            <CommentCard
-              key={comment.id}
-              id={comment.id}
-              author={comment.author}
-              content={comment.content}
-              agreeCount={comment.agreeCount}
-              disagreeCount={comment.disagreeCount}
-              timestamp={comment.timestamp}
-            />
-          ))}
-        </div>
+        {/* Right Sidebar - Search and Add Comment */}
+        <SearchSidebar />
       </div>
     </div>
   )
