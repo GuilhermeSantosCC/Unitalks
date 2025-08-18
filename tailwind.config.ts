@@ -52,16 +52,25 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
+				tech: {
+					purple: 'hsl(var(--tech-purple))',
+					'purple-dark': 'hsl(var(--tech-purple-dark))',
+					green: 'hsl(var(--tech-green))',
+					'green-dark': 'hsl(var(--tech-green-dark))',
+					gray: 'hsl(var(--tech-gray))',
+					'gray-light': 'hsl(var(--tech-gray-light))'
 				}
+			},
+			backgroundImage: {
+				'gradient-tech': 'var(--gradient-tech)',
+				'gradient-card': 'var(--gradient-card)'
+			},
+			boxShadow: {
+				'glow-purple': 'var(--glow-purple)',
+				'glow-green': 'var(--glow-green)'
+			},
+			transitionProperty: {
+				'smooth': 'var(--transition-smooth)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
