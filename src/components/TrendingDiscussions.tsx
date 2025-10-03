@@ -24,6 +24,14 @@ const trendingTopics = [
 export function TrendingDiscussions() {
   return (
     <div className="w-80 p-6">
+      <div className="text-center mb-8 py-4">
+                    <h1 className="text-3xl font-bold bg-gradient-tech bg-clip-text text-transparent mb-2">
+                      UniTalks
+                    </h1>
+                    <p className="text-muted-foreground">
+                      Seu espaço de fala!
+                    </p>
+                  </div>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">
           Discussões do momento

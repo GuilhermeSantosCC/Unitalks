@@ -21,7 +21,7 @@ export function SearchSidebar() {
             placeholder="Buscar discussões..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-input border-tech-gray focus:border-tech-purple transition-colors"
+            className="pl-10 bg-input border-tech-gray focus:border-tech-purple"
           />
         </div>
 

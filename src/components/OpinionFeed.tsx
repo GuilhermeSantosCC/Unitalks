@@ -63,16 +63,7 @@ export function OpinionFeed() {
         
         {/* Main Feed */}
         <div className="flex-1 py-8 px-6">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold bg-gradient-tech bg-clip-text text-transparent mb-2">
-                Tech Opinions
-              </h1>
-              <p className="text-muted-foreground">
-                Compartilhe sua opinião sobre tecnologia
-              </p>
-            </div>
-            
+          <div className="max-w-2xl mx-auto pt-8">            
             <div className="space-y-6">
               {mockComments.map((comment) => (
                 <CommentCard

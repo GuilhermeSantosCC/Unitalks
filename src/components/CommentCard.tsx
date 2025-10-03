@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { VoteButton } from "@/components/ui/vote-button"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
@@ -8,7 +7,6 @@ interface CommentCardProps {
   id: string
   author: string
   content: string
-  avatar?: string
   agreeCount: number
   disagreeCount: number
   timestamp: string
@@ -18,7 +16,6 @@ export function CommentCard({
   id, 
   author, 
   content, 
-  avatar, 
   agreeCount: initialAgreeCount, 
   disagreeCount: initialDisagreeCount,
   timestamp 
@@ -59,14 +56,7 @@ export function CommentCard({
   return (
     <Card className="w-full bg-gradient-card border-border/50 hover:border-border transition-all duration-300 hover:shadow-lg">
       <CardContent className="p-6">
-        <div className="flex items-start gap-4">
-          <Avatar className="h-10 w-10 ring-2 ring-tech-purple/20">
-            <AvatarImage src={avatar} alt={author} />
-            <AvatarFallback className="bg-tech-purple/20 text-tech-purple font-semibold">
-              {author.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
+        <div className="flex items-start gap-4">          
           <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-foreground">{author}</h4>
