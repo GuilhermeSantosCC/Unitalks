@@ -1,18 +1,17 @@
+// src/components/OpinionFeed.tsx
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'; 
-import { CommentCard } from './CommentCard';
+import { db } from '../firebase'; //
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { CommentCard } from './CommentCard'; //
 
+// Interface sem isDeleted
 interface Comment {
   id: string;
-  author?: string;
-  name?: string;
-  content?: string;
-  message?: string;
+  userId?: string;
+  authorName?: string;
+  content?: string; // Mantém string
   agreeCount?: number;
-  likes?: number;
   disagreeCount?: number;
-  disagree?: number;
   timestamp: any;
 }
 
@@ -20,7 +19,7 @@ export function OpinionFeed() {
   const [comments, setComments] = useState<Comment[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+    const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc')); //
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const commentsList = snapshot.docs.map(doc => {
@@ -35,32 +34,38 @@ export function OpinionFeed() {
             hour: '2-digit',
             minute: '2-digit'
           });
-        }
+        } //
 
         return {
           id: doc.id,
-          ...data,
+          userId: data.userId,
+          authorName: data.authorName,
+          content: data.content || "", // Fallback para string vazia
+          agreeCount: data.agreeCount || 0,
+          disagreeCount: data.disagreeCount || 0,
           timestamp: timestampStr
-        };
+          // isDeleted removido
+        } satisfies Comment;
       });
-      
       setComments(commentsList);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, []); //
 
   return (
-    <div className="opinion-feed space-y-4">
+    <div className="opinion-feed space-y-4"> {/* */}
       {comments.map(comment => (
         <CommentCard
           key={comment.id}
           id={comment.id}
-          author={comment.author || comment.name || "Anônimo"}
-          content={comment.content || comment.message || ""}
-          agreeCount={comment.agreeCount || comment.likes || 0}
-          disagreeCount={comment.disagreeCount || comment.disagree || 0}
+          userId={comment.userId}
+          author={comment.authorName || "Anônimo"} //
+          content={comment.content || ""} // Passa string
+          agreeCount={comment.agreeCount || 0}
+          disagreeCount={comment.disagreeCount || 0}
           timestamp={comment.timestamp}
+          // isDeleted não é passado
         />
       ))}
     </div>
