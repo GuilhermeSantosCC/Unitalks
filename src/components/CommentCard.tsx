@@ -2,6 +2,8 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { VoteButton } from "@/components/ui/vote-button"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
+import { db } from "@/firebase"
+import { doc, updateDoc, increment } from "firebase/firestore"
 
 interface CommentCardProps {
   id: string
@@ -12,8 +14,8 @@ interface CommentCardProps {
   timestamp: string
 }
 
-export function CommentCard({ 
-  id, 
+export function CommentCard({  
+  id,
   author, 
   content, 
   agreeCount: initialAgreeCount, 
@@ -21,35 +23,24 @@ export function CommentCard({
   timestamp 
 }: CommentCardProps) {
   const [userVote, setUserVote] = useState<'agree' | 'disagree' | null>(null)
-  const [agreeCount, setAgreeCount] = useState(initialAgreeCount)
-  const [disagreeCount, setDisagreeCount] = useState(initialDisagreeCount)
 
-  const handleVote = (voteType: 'agree' | 'disagree') => {
+  const handleVote = async (voteType: 'agree' | 'disagree') => {
+    if (!id) return;
+
+    const postRef = doc(db, 'posts', id);
     if (userVote === voteType) {
-      // Remove vote
-      if (voteType === 'agree') {
-        setAgreeCount(prev => prev - 1)
-      } else {
-        setDisagreeCount(prev => prev - 1)
-      }
-      setUserVote(null)
+      await updateDoc(postRef, {
+        [voteType === 'agree' ? 'agreeCount' : 'disagreeCount']: increment(-1)
+      });
+      setUserVote(null);
     } else {
-      // Change or add vote
-      if (userVote === 'agree') {
-        setAgreeCount(prev => prev - 1)
-        setDisagreeCount(prev => prev + 1)
-      } else if (userVote === 'disagree') {
-        setDisagreeCount(prev => prev - 1)
-        setAgreeCount(prev => prev + 1)
-      } else {
-        // First vote
-        if (voteType === 'agree') {
-          setAgreeCount(prev => prev + 1)
-        } else {
-          setDisagreeCount(prev => prev + 1)
-        }
+      const updates: { [key: string]: any } = {};
+      if (userVote) {
+        updates[userVote === 'agree' ? 'agreeCount' : 'disagreeCount'] = increment(-1);
       }
-      setUserVote(voteType)
+      updates[voteType === 'agree' ? 'agreeCount' : 'disagreeCount'] = increment(1);
+      await updateDoc(postRef, updates);
+      setUserVote(voteType);
     }
   }
 
@@ -69,7 +60,7 @@ export function CommentCard({
               <VoteButton
                 variant="agree"
                 active={userVote === 'agree'}
-                count={agreeCount}
+                count={initialAgreeCount}
                 onClick={() => handleVote('agree')}
               >
                 <ThumbsUp className="h-4 w-4" />
@@ -79,7 +70,7 @@ export function CommentCard({
               <VoteButton
                 variant="disagree"
                 active={userVote === 'disagree'}
-                count={disagreeCount}
+                count={initialDisagreeCount}
                 onClick={() => handleVote('disagree')}
               >
                 <ThumbsDown className="h-4 w-4" />
