@@ -1,45 +1,3 @@
-<<<<<<< Updated upstream
-import { useState } from "react"
-import { Search, Plus } from "lucide-react"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Card } from "./ui/card"
-import { db } from "@/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-
-export function SearchSidebar() {
-  const [searchTerm, setSearchTerm] = useState("")
-
-  const handleAddComment = async () => {
-    try {
-      const authorName = prompt("Por favor, digite seu nome:", "Anônimo");
-      const contentText = prompt("Digite seu comentário:");
-
-      if (contentText && authorName) {
-        await addDoc(collection(db, "posts"), {
-          author: authorName,
-          content: contentText,
-          agreeCount: 0,
-          disagreeCount: 0,
-          timestamp: serverTimestamp()
-        });
-        alert("Comentário adicionado com sucesso!");
-      }
-    } catch (e) {
-      console.error("Erro ao adicionar documento: ", e);
-      alert("Ocorreu um erro ao adicionar o comentário.");
-    }
-  }
-
-  return (
-    <div className="w-80 p-6">
-      <div className="mb-6">
-        {/* --- LINHA RESTAURADA ABAIXO --- */}
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Aba de Pesquisa
-        </h2>
-        
-=======
 // src/components/SearchSidebar.tsx
 import { useState, useEffect } from "react";
 import { Search, Plus, LogOut } from "lucide-react";
@@ -125,7 +83,6 @@ export function SearchSidebar() {
         </h2>
 
         {/* Campo de busca */}
->>>>>>> Stashed changes
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -137,26 +94,16 @@ export function SearchSidebar() {
           />
         </div>
 
-<<<<<<< Updated upstream
-        <Button 
-          onClick={handleAddComment}
-          className="w-full bg-tech-purple hover:bg-tech-purple-dark text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-glow-purple group"
-=======
         {/* Botão Adicionar Comentário */}
         <Button
           onClick={() => setIsModalOpen(true)} // 👈 abre o modal
           disabled={!currentUser}
           className="w-full bg-tech-purple hover:bg-tech-purple-dark text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-glow-purple group disabled:opacity-50 disabled:cursor-not-allowed mb-4"
           title={!currentUser ? "Faça login para comentar" : "Adicionar Comentário"}
->>>>>>> Stashed changes
         >
           <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
           Adicionar Comentário
         </Button>
-<<<<<<< Updated upstream
-      </div>
-
-=======
 
         {/* Botão de Logout */}
         {currentUser && (
@@ -172,7 +119,6 @@ export function SearchSidebar() {
       </div>
 
       {/* Card de busca */}
->>>>>>> Stashed changes
       {searchTerm && (
         <Card className="p-4 bg-gradient-card border-tech-gray">
           <h3 className="text-sm font-medium text-foreground mb-2">
@@ -191,10 +137,5 @@ export function SearchSidebar() {
         onSubmit={handleAddComment}
       />
     </div>
-<<<<<<< Updated upstream
-  )
-}
-=======
   );
 }
->>>>>>> Stashed changes
