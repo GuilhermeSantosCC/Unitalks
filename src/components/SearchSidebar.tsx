@@ -1,19 +1,22 @@
 // src/components/SearchSidebar.tsx
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut } from "lucide-react";
+import { Search, Plus, LogOut, User } from "lucide-react"; // 👈 adicionado o ícone de perfil
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { db, auth } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, User, signOut } from "firebase/auth";
-import { CommentModal } from "./ui/CommentModal"; // 👈 novo popup
+import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom"; // 👈 import do hook de navegação
+import { CommentModal } from "./ui/CommentModal"; // 👈 popup
 
 export function SearchSidebar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [authorDisplayName, setAuthorDisplayName] = useState<string | null>(null);
+
+  const navigate = useNavigate(); // 👈 hook para navegar
 
   // --- Observador de login ---
   useEffect(() => {
@@ -99,11 +102,23 @@ export function SearchSidebar() {
           onClick={() => setIsModalOpen(true)} // 👈 abre o modal
           disabled={!currentUser}
           className="w-full bg-tech-purple hover:bg-tech-purple-dark text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-glow-purple group disabled:opacity-50 disabled:cursor-not-allowed mb-4"
-          title={!currentUser ? "Faça login para comentar" : "Adicionar Comentário"}
+          title={!currentUser ? 'Faça login para comentar' : 'Adicionar Comentário'}
         >
           <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
           Adicionar Comentário
         </Button>
+
+        {/* Botão de Perfil 👇 */}
+        {currentUser && (
+          <Button
+            onClick={() => navigate("/profile")}
+            variant="outline"
+            className="w-full border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 mb-2"
+          >
+            <User className="h-4 w-4 mr-2" />
+            Meu Perfil
+          </Button>
+        )}
 
         {/* Botão de Logout */}
         {currentUser && (

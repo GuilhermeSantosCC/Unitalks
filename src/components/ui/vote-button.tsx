@@ -8,28 +8,27 @@ const voteButtonVariants = cva(
     variants: {
       variant: {
         agree: [
-          // botão verde
           "bg-tech-green/10 text-tech-green border border-tech-green/20",
           "hover:bg-tech-green/20 hover:border-tech-green/40 hover:shadow-glow-green",
-          "data-[active=true]:bg-tech-green data-[active=true]:text-background data-[active=true]:shadow-glow-green",
+          "data-[active=true]:bg-tech-green data-[active=true]:text-background",
+          "data-[active=true]:shadow-glow-green"
         ],
         disagree: [
-          // botão vermelho
-          "bg-destructive/10 text-destructive border border-destructive/20",
-          "hover:bg-destructive/20 hover:border-destructive/40 hover:shadow-glow-red",
-          "data-[active=true]:bg-destructive data-[active=true]:text-destructive-foreground data-[active=true]:shadow-glow-red",
-        ],
+          "bg-destructive/10 text-destructive border border-destructive/20", 
+          "hover:bg-destructive/20 hover:border-destructive/40",
+          "data-[active=true]:bg-destructive data-[active=true]:text-destructive-foreground"
+        ]
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 px-3 text-xs",
-        lg: "h-10 px-6",
-      },
+        lg: "h-10 px-6"
+      }
     },
     defaultVariants: {
       variant: "agree",
-      size: "default",
-    },
+      size: "default"
+    }
   }
 )
 

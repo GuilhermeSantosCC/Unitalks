@@ -80,9 +80,8 @@ export function CommentCard({
           id: doc.id,
           author: doc.data().author,
           content: doc.data().content,
-          timestamp: new Date(
-            doc.data().timestamp?.toDate()
-          ).toLocaleString("pt-BR"),
+          // CORREÇÃO: Acessa o objeto Timestamp e converte para Date antes de formatar
+          timestamp: doc.data().timestamp?.toDate().toLocaleString("pt-BR") || "Data desconhecida",
           userId: doc.data().userId,
         }));
         setReplies(fetchedReplies);
@@ -98,10 +97,13 @@ export function CommentCard({
     const field = type === "agree" ? "agreeCount" : "disagreeCount";
 
     if (userVote === type) {
+      // Remover voto
       await updateDoc(postRef, { [field]: increment(-1) });
       setUserVote(null);
     } else {
+      // Mudar voto ou adicionar novo voto
       if (userVote) {
+        // Se já tinha um voto, remove o voto oposto
         const oppositeField =
           userVote === "agree" ? "agreeCount" : "disagreeCount";
         await updateDoc(postRef, { [oppositeField]: increment(-1) });
@@ -109,6 +111,8 @@ export function CommentCard({
       await updateDoc(postRef, { [field]: increment(1) });
       setUserVote(type);
     }
+    // NOTA: Para um sistema de votos robusto, você também precisaria
+    // salvar a informação do voto do usuário em uma subcoleção separada para evitar que ele vote infinitamente.
   };
 
   const handleReply = async () => {
@@ -127,12 +131,14 @@ export function CommentCard({
   const confirmDelete = async () => {
     setIsDeleteModalOpen(false);
     try {
+      // Deleta todas as respostas primeiro
       const repliesRef = collection(db, "posts", id, "replies");
       const repliesSnapshot = await getDocs(repliesRef);
       const batch = writeBatch(db);
       repliesSnapshot.forEach((replyDoc) => batch.delete(replyDoc.ref));
       await batch.commit();
 
+      // Deleta o post principal
       const postRef = doc(db, "posts", id);
       await deleteDoc(postRef);
       console.log("Post e respostas deletados com sucesso!");
