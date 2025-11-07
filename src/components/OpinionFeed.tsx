@@ -1,88 +1,73 @@
-import { CommentCard } from "./CommentCard"
-import { TrendingDiscussions } from "./TrendingDiscussions"
-import { SearchSidebar } from "./SearchSidebar"
+// src/components/OpinionFeed.tsx
+import React, { useState, useEffect } from 'react';
+import { db } from '../firebase'; //
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { CommentCard } from './CommentCard'; //
 
-// Mock data para demonstração
-const mockComments = [
-  {
-    id: "1",
-    author: "DevMaster",
-    content: "TypeScript mudou completamente a forma como escrevo JavaScript. A tipagem estática realmente previne muitos bugs em produção.",
-    agreeCount: 24,
-    disagreeCount: 3,
-    timestamp: "2h atrás"
-  },
-  {
-    id: "2", 
-    author: "CodeNinja",
-    content: "React hooks são superiores aos class components em todos os aspectos. Mais limpo, mais funcional e mais fácil de testar.",
-    agreeCount: 18,
-    disagreeCount: 7,
-    timestamp: "4h atrás"
-  },
-  {
-    id: "3",
-    author: "FullStackDev",
-    content: "Dark mode não é apenas uma questão de estética, mas de acessibilidade e conforto visual, especialmente para quem passa horas programando.",
-    agreeCount: 31,
-    disagreeCount: 2,
-    timestamp: "6h atrás"
-  },
-  {
-    id: "4",
-    author: "TechExplorer", 
-    content: "CSS-in-JS é uma evolução natural. Ter estilos co-localizados com componentes torna o desenvolvimento mais ágil e manutenível.",
-    agreeCount: 12,
-    disagreeCount: 15,
-    timestamp: "8h atrás"
-  },
-  {
-    id: "5",
-    author: "CloudArchitect",
-    content: "Microserviços não são sempre a solução. Para muitos projetos, um monolito bem estruturado é mais eficiente e fácil de manter.",
-    agreeCount: 27,
-    disagreeCount: 9,
-    timestamp: "1d atrás"
-  },
-  {
-    id: "6",
-    author: "DataWizard",
-    content: "GraphQL resolve problemas reais de over-fetching e under-fetching que REST APIs sempre tiveram. É o futuro das APIs.",
-    agreeCount: 19,
-    disagreeCount: 11,
-    timestamp: "1d atrás"
-  }
-]
+// Interface sem isDeleted
+interface Comment {
+  id: string;
+  userId?: string;
+  authorName?: string;
+  content?: string; // Mantém string
+  agreeCount?: number;
+  disagreeCount?: number;
+  timestamp: any;
+}
 
 export function OpinionFeed() {
+  const [comments, setComments] = useState<Comment[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc')); //
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const commentsList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let timestampStr = "Agora";
+        if (data.timestamp) {
+          const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+          timestampStr = new Date(date).toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } //
+
+        return {
+          id: doc.id,
+          userId: data.userId,
+          authorName: data.authorName,
+          content: data.content || "", // Fallback para string vazia
+          agreeCount: data.agreeCount || 0,
+          disagreeCount: data.disagreeCount || 0,
+          timestamp: timestampStr
+          // isDeleted removido
+        } satisfies Comment;
+      });
+      setComments(commentsList);
+    });
+
+    return () => unsubscribe();
+  }, []); //
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex max-w-7xl mx-auto">
-        {/* Left Sidebar - Trending Discussions */}
-        <TrendingDiscussions />
-        
-        {/* Main Feed */}
-        <div className="flex-1 py-8 px-6">
-          <div className="max-w-2xl mx-auto pt-8">            
-            <div className="space-y-6">
-              {mockComments.map((comment) => (
-                <CommentCard
-                  key={comment.id}
-                  id={comment.id}
-                  author={comment.author}
-                  content={comment.content}
-                  agreeCount={comment.agreeCount}
-                  disagreeCount={comment.disagreeCount}
-                  timestamp={comment.timestamp}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Right Sidebar - Search and Add Comment */}
-        <SearchSidebar />
-      </div>
+    <div className="opinion-feed space-y-4"> {/* */}
+      {comments.map(comment => (
+        <CommentCard
+          key={comment.id}
+          id={comment.id}
+          userId={comment.userId}
+          author={comment.authorName || "Anônimo"} //
+          content={comment.content || ""} // Passa string
+          agreeCount={comment.agreeCount || 0}
+          disagreeCount={comment.disagreeCount || 0}
+          timestamp={comment.timestamp}
+          // isDeleted não é passado
+        />
+      ))}
     </div>
-  )
+  );
 }

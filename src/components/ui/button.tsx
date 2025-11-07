@@ -1,11 +1,10 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -18,6 +17,18 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+
+        // 🩶 Discreto (para “Responder”)
+        subtle:
+          "bg-muted/40 text-foreground border border-border hover:bg-muted/70 hover:text-white hover:shadow-glow transition-all duration-300",
+
+        // 💚 Acentuado (para “Ver resposta(s)”)
+        accent:
+          "bg-tech-green/15 text-tech-green font-medium border border-tech-green/25 hover:bg-tech-green/25 hover:text-background hover:shadow-glow-green transition-all duration-300",
+
+        // ❤️ Perigoso (para “Excluir”)
+        danger:
+          "bg-destructive/15 text-destructive border border-destructive/25 hover:bg-destructive hover:text-destructive-foreground hover:shadow-glow-red transition-all duration-300",
       },
       size: {
         default: "h-10 px-4 py-2",

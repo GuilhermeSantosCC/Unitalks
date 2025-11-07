@@ -40,22 +40,23 @@ export interface VoteButtonProps
 }
 
 const VoteButton = React.forwardRef<HTMLButtonElement, VoteButtonProps>(
-  ({ className, variant, size, active, count, children, ...props }, ref) => {
+  ({ className, variant, size, active = false, count, children, ...props }, ref) => {
     return (
       <button
-        className={cn(voteButtonVariants({ variant, size, className }))}
-        data-active={active}
         ref={ref}
+        data-active={active}
+        className={cn(voteButtonVariants({ variant, size }), className)}
         {...props}
       >
         {children}
-        {count !== undefined && (
+        {typeof count === "number" && (
           <span className="text-xs font-semibold">{count}</span>
         )}
       </button>
     )
   }
 )
+
 VoteButton.displayName = "VoteButton"
 
 export { VoteButton, voteButtonVariants }
