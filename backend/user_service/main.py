@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm # Para o form de login
 from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 import security
@@ -10,6 +11,21 @@ import database
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+# --- Configuração do CORS --- (ADICIONE ESTE BLOCO)
+origins = [
+    "http://localhost:8080", # A porta do seu React (Vite)
+    "http://127.0.0.1:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins, # Permite que o localhost:8080 faça requisições
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos os métodos (GET, POST, etc)
+    allow_headers=["*"], # Permite todos os cabeçalhos
+)
+# --- Fim do Bloco CORS ---
 
 # --- Endpoint de Registro ---
 @app.post("/register/", response_model=schemas.User)
