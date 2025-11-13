@@ -7,19 +7,17 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from './ui/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ReplyResponse } from '@/types';
+import { ReplyResponse } from '@/types'; 
 
-// Props que o ReplyCard espera
 interface ReplyCardProps {
-    replyData: ReplyResponse;     // A resposta que este card deve renderizar
-    allReplies: ReplyResponse[]; // A lista completa de todas as respostas do post
+    replyData: ReplyResponse;
+    allReplies: ReplyResponse[];
 } 
 
 export const ReplyCard: React.FC<ReplyCardProps> = ({
     replyData,
     allReplies 
 }) => {
-    // 2. Pega os dados da resposta atual
     const { id: replyId, post_id: postId, owner_id: userId } = replyData;
     const authorName = replyData.owner.name;
     const content = replyData.content;
@@ -33,10 +31,8 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
     const isLoggedIn = !!user;
     const isOwner = isLoggedIn && !isAuthLoading && user?.id === userId;
 
-    // 3. Lógica de Aninhamento: Encontra as respostas "filhas"
     const nestedReplies = allReplies.filter(reply => reply.parent_reply_id === replyId);
 
-    // --- LÓGICA DE RESPOSTA ANINHADA ---
     const handleSendNestedReply = async () => {
       if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para responder.", variant: "destructive"}); return; }
       if (!nestedReplyContent.trim()) {
@@ -58,7 +54,7 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
           },
           body: JSON.stringify({
             content: nestedReplyContent,
-            parent_reply_id: replyId // <-- A MÁGICA: aninha a resposta
+            parent_reply_id: replyId
           })
         });
 
@@ -68,7 +64,7 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
         }
         
         toast({ title: "Resposta enviada!" });
-        window.location.reload(); // Recarrega para ver a nova resposta aninhada
+        window.location.reload(); 
 
       } catch (err) {
          if (err instanceof Error) {
@@ -77,12 +73,44 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
       }
     }; 
 
+    // --- FUNÇÃO DE DELETE ATUALIZADA ---
     const handleDeleteReply = async () => {
-      if (!isOwner) { toast({ title: "Acesso Negado", description: "Você não é o dono desta resposta.", variant: "destructive"}); return; }
+      if (!isOwner) { 
+        toast({ title: "Acesso Negado", description: "Você não é o dono desta resposta.", variant: "destructive"}); 
+        return; 
+      }
+
+      const token = localStorage.getItem('userToken');
+      if (!token) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
+        return;
+      }
       
-      // TODO: Implementar endpoint 'DELETE /replies/{reply_id}'
-      console.warn("API de Deletar Resposta ainda não implementada.");
-      toast({ title: "Em breve", description: "A API para deletar respostas será implementada." });
+      try {
+        // 1. Chama o novo endpoint (DELETE /replies/{id})
+        const response = await fetch(`http://127.0.0.1:8001/replies/${replyId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            // Se der 404 (não achou) ou 403 (não é o dono)
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Não foi possível apagar a resposta.");
+        }
+
+        // 2. Sucesso!
+        toast({ title: "Resposta Apagada" });
+        window.location.reload(); // Recarrega para a resposta sumir
+
+      } catch (err) {
+          if (err instanceof Error) {
+            toast({ title: "Erro", description: err.message, variant: "destructive" });
+          }
+          console.error("Erro ao deletar resposta:", err);
+      }
     }; 
 
     return (
@@ -93,6 +121,7 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                         <h5 className="font-semibold text-foreground/90">{authorName}</h5>
                         <span className="text-xs text-muted-foreground">{timestamp}</span>
                     </div>
+                    {/* O botão de lixeira agora funciona */}
                     {isOwner && (
                         <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={handleDeleteReply} title="Apagar Resposta"> <Trash2 className="h-3 w-3" /> </Button>
                     )}
@@ -109,7 +138,6 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                         <MessageSquareReply className="h-3 w-3 mr-1" /> Responder
                     </Button> 
                     
-                    {/* 4. Só mostra o botão se houver respostas aninhadas */}
                     {nestedReplies.length > 0 && (
                       <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs" onClick={() => setShowNestedReplies(!showNestedReplies)}> 
                         <CornerDownRight className="h-3 w-3 mr-1" /> 
@@ -128,14 +156,13 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                     </div>
                  )}
 
-                 {/* 5. Bloco para Exibir Respostas ANINHADAS (Recursão) */}
                  {showNestedReplies && (
                     <div className="mt-3 pl-4 border-l-2 border-border/30 space-y-2"> 
                         {nestedReplies.length > 0 ? (
                             nestedReplies.map(nestedReply => (
                                 <ReplyCard
                                     key={nestedReply.id}
-                                    replyData={nestedReply}
+                                    replyData={nestedReply} 
                                     allReplies={allReplies}
                                 />
                             ))

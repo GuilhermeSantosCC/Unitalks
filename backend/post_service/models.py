@@ -26,6 +26,7 @@ class Post(Base):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     owner = relationship("User")
     
+    # Adiciona a relação para que possamos acessar 'post.replies'
     # cascade="all, delete-orphan": Se um Post é apagado, todas as suas 'replies' são apagadas.
     replies = relationship("Reply", back_populates="post", cascade="all, delete-orphan")
 

@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 import models, schemas, database, auth 
 from typing import List
 
-# Cria TODAS as tabelas (posts, votes, replies) se não existirem
+# Cria as tabelas (posts, votes, replies) se não existirem
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
@@ -14,7 +14,7 @@ app = FastAPI()
 origins = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
-    "http://192.168.0.148:8080", 
+    "http://192.168.0.148:8080",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -28,9 +28,11 @@ app.add_middleware(
 
 @app.get("/posts/", response_model=List[schemas.PostResponse])
 def get_posts(db: Session = Depends(database.get_db)):
-
+    """
+    Busca todos os posts, incluindo 'owner' e 'replies' com seus 'owners'.
+    """
     posts = db.query(models.Post).options(
-        joinedload(models.Post.owner),
+        joinedload(models.Post.owner), 
         joinedload(models.Post.replies).joinedload(models.Reply.owner)
     ).order_by(models.Post.created_at.desc()).all()
     
@@ -46,14 +48,11 @@ def create_post(
         content=post.content,
         owner_id=current_user.id
     )
-    
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
     
-    # Recarrega o post com os dados do 'owner' para a resposta
     db_post = db.query(models.Post).options(joinedload(models.Post.owner)).filter(models.Post.id == new_post.id).first()
-    
     return db_post
 
 @app.delete("/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -70,7 +69,6 @@ def delete_post(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post com id: {post_id} não encontrado."
         )
-
     if post.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -79,7 +77,6 @@ def delete_post(
 
     post_query.delete(synchronize_session=False)
     db.commit()
-
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 # --- Endpoint de Voto ---
@@ -136,20 +133,16 @@ def vote_post(
     db.refresh(post)
     
     db_post = db.query(models.Post).options(joinedload(models.Post.owner)).filter(models.Post.id == post.id).first()
-    
     return db_post
 
-# --- ENDPOINTS DE RESPOSTAS (REPLIES) ---
+# --- Endpoints de Respostas (Replies) ---
 
 @app.get("/posts/{post_id}/replies", response_model=List[schemas.ReplyResponse])
 def get_replies_for_post(post_id: int, db: Session = Depends(database.get_db)):
-
-    # Busca as respostas e já carrega os dados do 'owner' (autor)
     replies = db.query(models.Reply).filter(models.Reply.post_id == post_id)\
         .options(joinedload(models.Reply.owner))\
         .order_by(models.Reply.created_at.asc())\
         .all()
-    
     return replies
 
 @app.post("/posts/{post_id}/replies", response_model=schemas.ReplyResponse, status_code=status.HTTP_201_CREATED)
@@ -159,20 +152,17 @@ def create_reply_for_post(
     db: Session = Depends(database.get_db), 
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # 1. Verifica se o post principal existe
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post com id {post_id} não encontrado.")
     
-    # 2. (Opcional) Verifica se a "resposta pai" (para aninhamento) existe
     if reply.parent_reply_id:
         parent_reply = db.query(models.Reply).filter(models.Reply.id == reply.parent_reply_id).first()
         if not parent_reply:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Resposta 'pai' com id {reply.parent_reply_id} não encontrada.")
 
-    # 3. Cria a nova resposta
     new_reply = models.Reply(
         content=reply.content,
         post_id=post_id,
@@ -184,8 +174,45 @@ def create_reply_for_post(
     db.commit()
     db.refresh(new_reply)
 
-    # 4. Recarrega a resposta com os dados do 'owner' para a resposta
     db_reply = db.query(models.Reply).options(joinedload(models.Reply.owner))\
         .filter(models.Reply.id == new_reply.id).first()
 
     return db_reply
+
+# --- NOVO ENDPOINT DE DELETE (REPLIES) ---
+@app.delete("/replies/{reply_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_reply(
+    reply_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Deleta uma resposta (reply).
+    - Exige que o usuário esteja logado.
+    - Verifica se o usuário logado é o dono da resposta.
+    """
+    # 1. Busca a resposta no banco
+    reply_query = db.query(models.Reply).filter(models.Reply.id == reply_id)
+    reply = reply_query.first()
+
+    # 2. Se a resposta não existe
+    if reply is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Resposta com id: {reply_id} não encontrada."
+        )
+
+    # 3. Verifica se o usuário logado é o dono da resposta
+    if reply.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não autorizado a realizar esta ação."
+        )
+
+    # 4. Se tudo deu certo, deleta a resposta
+    # (Graças ao 'ondelete="CASCADE"' no models.py,
+    # todas as respostas aninhadas a esta serão deletadas juntas)
+    reply_query.delete(synchronize_session=False)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

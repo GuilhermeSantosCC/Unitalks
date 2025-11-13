@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional, List, Literal 
+from typing import Optional, List, Literal # <-- 'Literal' está no lugar correto
 
 # --- Schema do Usuário (usado nas respostas) ---
 class UserResponse(BaseModel):
@@ -21,6 +21,9 @@ class Vote(BaseModel):
     post_id: int
     vote_type: Literal['agree', 'disagree', 'none']
 
+# --- NOVOS SCHEMAS PARA REPLIES ---
+
+# O que a API devolve (definido ANTES de PostResponse)
 class ReplyResponse(BaseModel):
     id: int
     content: str
@@ -28,7 +31,7 @@ class ReplyResponse(BaseModel):
     post_id: int
     owner_id: int
     parent_reply_id: Optional[int] = None
-    owner: UserResponse
+    owner: UserResponse # Dados do autor
 
     class Config:
         from_attributes = True
@@ -48,7 +51,7 @@ class PostResponse(BaseModel):
     owner: UserResponse
     agree_count: int
     disagree_count: int
-    replies: List[ReplyResponse] = []
+    replies: List[ReplyResponse] = [] # Inclui a lista de respostas
 
     class Config:
         from_attributes = True
