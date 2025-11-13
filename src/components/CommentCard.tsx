@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { ReplyCard } from "./ReplyCard";
 import { toast } from "./ui/use-toast";
 import { useAuth } from "@/context/AuthContext"; 
+import { ReplyResponse } from "@/types"; // <-- 1. Importar nosso tipo
 
-// --- Interfaces (sem alteração) ---
+// Props que o CommentCard espera
 interface CommentCardProps {
   id: string;
   userId: string;
@@ -24,16 +25,8 @@ interface CommentCardProps {
   agreeCount: number;
   disagreeCount: number;
   timestamp: string;
+  initialReplies: ReplyResponse[]; // <-- 2. Receber a prop
 }
-interface ReplyData {
-  id: string;
-  authorName: string;
-  content: string;
-  timestamp: string;
-  userId: string;
-  postId: string;
-}
-// --- Fim das Interfaces ---
 
 export function CommentCard({
   id,
@@ -43,16 +36,16 @@ export function CommentCard({
   agreeCount: initialAgreeCount,
   disagreeCount: initialDisagreeCount,
   timestamp,
+  initialReplies, // <-- 3. Usar a prop
 }: CommentCardProps) {
   
+  // --- Estados Locais ---
   const [userVote, setUserVote] = useState<"agree" | "disagree" | null>(null);
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
-  const [replies, setReplies] = useState<ReplyData[]>([]);
+  const [replies, setReplies] = useState<ReplyResponse[]>(initialReplies); // 4. Inicializar estado com as respostas
   const [showReplies, setShowReplies] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
-  // Contadores locais para atualização otimista
   const [agreeCount, setAgreeCount] = useState(initialAgreeCount);
   const [disagreeCount, setDisagreeCount] = useState(initialDisagreeCount);
   
@@ -60,19 +53,17 @@ export function CommentCard({
   const isLoggedIn = !!user;
   const isOwner = isLoggedIn && !isAuthLoading && user?.id.toString() === userId;
 
-  useEffect(() => {
-    // TODO: Na próxima branch, vamos carregar o estado de voto do usuário
-    // (ex: /api/posts/votes/me) para que o botão 'active' seja persistente.
-    // Por enquanto, 'userVote' é apenas local.
-  }, [id, user]);
+  // Filtra apenas as respostas de "primeiro nível" (sem 'pai')
+  const topLevelReplies = replies.filter(reply => reply.parent_reply_id === null);
 
   
+  // --- Funções de Ação ---
+
   const handleVote = async (voteType: "agree" | "disagree") => {
     if (!isLoggedIn) { 
       toast({ title: "Acesso Negado", description: "Faça login para votar.", variant: "destructive"}); 
       return; 
     }
-    
     const token = localStorage.getItem('userToken');
     if (!token) { 
       toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
@@ -90,7 +81,6 @@ export function CommentCard({
       newVoteType = "none";
       if (voteType === 'agree') setAgreeCount(c => c - 1);
       else setDisagreeCount(c => c - 1);
-
     } else if (userVote) {
       setUserVote(voteType);
       if (voteType === 'agree') {
@@ -101,13 +91,11 @@ export function CommentCard({
         setDisagreeCount(c => c + 1);
       }
     } else {
-      // Novo voto
       setUserVote(voteType);
       if (voteType === 'agree') setAgreeCount(c => c + 1);
       else setDisagreeCount(c => c + 1);
     }
 
-    // 2. Envio para a API
     try {
       const response = await fetch("http://127.0.0.1:8001/vote/", {
         method: "POST",
@@ -115,19 +103,10 @@ export function CommentCard({
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          post_id: parseInt(id),
-          vote_type: newVoteType
-        })
+        body: JSON.stringify({ post_id: parseInt(id), vote_type: newVoteType })
       });
-
-      if (!response.ok) {
-        // Se a API falhar, reverte a UI
-        throw new Error("Falha ao registrar o voto.");
-      }
-
+      if (!response.ok) throw new Error("Falha ao registrar o voto.");
     } catch (err) {
-      // 3. Reversão (Rollback) em caso de erro
       toast({ title: "Erro", description: "Não foi possível registrar seu voto.", variant: "destructive" });
       setUserVote(originalVote);
       setAgreeCount(originalAgree);
@@ -135,11 +114,51 @@ export function CommentCard({
     }
   };
 
+  // --- LÓGICA DE 'handleReply' ---
   const handleReply = async () => {
     if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para responder.", variant: "destructive"}); return; }
-    console.warn("API de Respostas (Replies) não implementada.");
-    setReplyContent("");
-    setIsReplying(false);
+    if (!replyContent.trim()) {
+      toast({ title: "Ops!", description: "A resposta não pode estar vazia.", variant: "destructive"});
+      return;
+    }
+    const token = localStorage.getItem('userToken');
+    if (!token) {
+      toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8001/posts/${id}/replies`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: replyContent,
+          parent_reply_id: null // Resposta de 1º nível, não tem 'pai'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Falha ao enviar resposta.");
+      }
+
+      const newReply: ReplyResponse = await response.json();
+
+      // Atualiza o estado local para a UI recarregar
+      setReplies(currentReplies => [...currentReplies, newReply]);
+      setReplyContent("");
+      setIsReplying(false);
+      setShowReplies(true); // Abre as respostas
+      toast({ title: "Resposta enviada!" });
+
+    } catch (err) {
+      if (err instanceof Error) {
+        toast({ title: "Erro", description: err.message, variant: "destructive" });
+      }
+    }
   };
 
   const confirmDelete = async () => {
@@ -147,7 +166,6 @@ export function CommentCard({
       toast({ title: "Acesso Negado", description: "Você não é o dono deste post.", variant: "destructive"}); 
       return; 
     }
-    
     const token = localStorage.getItem('userToken');
     if (!token) {
       toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
@@ -159,16 +177,13 @@ export function CommentCard({
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Não foi possível apagar o post.");
       }
-
       toast({ title: "Post Apagado", description: "Seu post foi removido." });
       setIsDeleteModalOpen(false);
       window.location.reload(); 
-
     } catch (err) {
       if (err instanceof Error) {
         toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -176,11 +191,8 @@ export function CommentCard({
       console.error("Erro ao deletar post:", err);
     }
   };
-
-  const fetchReplies = () => {
-    if (!showReplies) { 
-        console.warn("API de Respostas não implementada.");
-    }
+  
+  const toggleShowReplies = () => {
     setShowReplies(!showReplies); 
   };
 
@@ -197,7 +209,6 @@ export function CommentCard({
                     {timestamp}
                   </span>
                 </div>
-
                 {isOwner && ( 
                   <Button
                     variant="danger"
@@ -214,14 +225,15 @@ export function CommentCard({
               <p className="text-foreground leading-relaxed">{content}</p>
 
               <div className="flex items-center gap-3">
+                
                 <VoteButton
                   variant="agree"
                   count={agreeCount}
                   active={userVote === "agree"}
                   onClick={() => handleVote("agree")}
                 >
-                  <ThumbsUp className="h-4 w-4" />
-                </VoteButton>
+                  <ThumbsUp className="h-4 w-4" /> Concordo
+                </VoteButton> 
 
                 <VoteButton
                   variant="disagree"
@@ -229,8 +241,8 @@ export function CommentCard({
                   active={userVote === "disagree"}
                   onClick={() => handleVote("disagree")}
                 >
-                  <ThumbsDown className="h-4 w-4" />
-                </VoteButton>
+                  <ThumbsDown className="h-4 w-4" /> Discordo
+                </VoteButton> 
 
                 <Button
                   variant="subtle"
@@ -242,14 +254,20 @@ export function CommentCard({
                   Responder
                 </Button>
                 
+                {/* 5. Só mostra o botão se houver respostas */}
+                {replies.length > 0 && (
                   <Button
                     variant="accent"
                     size="sm"
-                    onClick={fetchReplies}
+                    onClick={toggleShowReplies} // Apenas mostra/esconde
                   >
                     <CornerDownRight className="h-4 w-4" />
-                    {showReplies ? "Ocultar respostas" : `Ver respostas`}
+                    {showReplies
+                      ? "Ocultar respostas"
+                      : `Ver ${replies.length} ${replies.length > 1 ? "respostas" : "resposta"}`
+                    }
                   </Button>
+                )}
               </div>
 
               {isReplying && (
@@ -259,19 +277,19 @@ export function CommentCard({
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="Escreva sua resposta..."
                   />
-                  <Button onClick={handleReply}>Enviar</Button>
+                  <Button onClick={handleReply}>Enviar Resposta</Button>
                 </div>
               )}
 
+              {/* 6. Mostra as respostas de 1º nível */}
               {showReplies && (
                 <div className="mt-4 pl-6 border-l border-border/40 space-y-4">
-                  {replies.length > 0 ? (
-                    replies.map((reply) => (
+                  {topLevelReplies.length > 0 ? (
+                    topLevelReplies.map((reply) => (
                       <ReplyCard
                         key={reply.id}
-                        {...reply}
-                        isLoggedIn={isLoggedIn}
-                        currentUserId={user ? user.id.toString() : null}
+                        replyData={reply}
+                        allReplies={replies}
                       />
                     ))
                   ) : (
@@ -284,10 +302,9 @@ export function CommentCard({
         </CardContent>
       </Card>
 
-      {}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#111] border border-gray-700 rounded-2xl shadow-lg w-full max-w-md p-6 relative animate-fadeIn">
+           <div className="bg-[#111] border border-gray-700 rounded-2xl shadow-lg w-full max-w-md p-6 relative animate-fadeIn">
             <button
               onClick={() => setIsDeleteModalOpen(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-white transition"

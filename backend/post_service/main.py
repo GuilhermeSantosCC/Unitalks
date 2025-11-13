@@ -5,7 +5,9 @@ from sqlalchemy.orm import joinedload
 import models, schemas, database, auth 
 from typing import List
 
+# Cria TODAS as tabelas (posts, votes, replies) se não existirem
 models.Base.metadata.create_all(bind=database.engine)
+
 app = FastAPI()
 
 # --- Configuração do CORS ---
@@ -22,11 +24,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Endpoints da API de Posts ---
+# --- Endpoints de Posts ---
 
 @app.get("/posts/", response_model=List[schemas.PostResponse])
 def get_posts(db: Session = Depends(database.get_db)):
-    posts = db.query(models.Post).options(joinedload(models.Post.owner)).all()
+
+    posts = db.query(models.Post).options(
+        joinedload(models.Post.owner),
+        joinedload(models.Post.replies).joinedload(models.Reply.owner)
+    ).order_by(models.Post.created_at.desc()).all()
+    
     return posts
 
 @app.post("/posts/", response_model=schemas.PostResponse, status_code=status.HTTP_201_CREATED)
@@ -44,6 +51,7 @@ def create_post(
     db.commit()
     db.refresh(new_post)
     
+    # Recarrega o post com os dados do 'owner' para a resposta
     db_post = db.query(models.Post).options(joinedload(models.Post.owner)).filter(models.Post.id == new_post.id).first()
     
     return db_post
@@ -74,7 +82,7 @@ def delete_post(
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-# --- ENDPOINT DE VOTO ---
+# --- Endpoint de Voto ---
 @app.post("/vote/", response_model=schemas.PostResponse)
 def vote_post(
     vote: schemas.Vote, 
@@ -92,20 +100,18 @@ def vote_post(
     )
     existing_vote = vote_query.first()
 
-
     if vote.vote_type == "none":
         if existing_vote:
             if existing_vote.vote_type == 1:
                 post.agree_count -= 1
             elif existing_vote.vote_type == -1:
                 post.disagree_count -= 1
-            
             vote_query.delete(synchronize_session=False)
     
     elif vote.vote_type == "agree":
         vote_value = 1
         if existing_vote:
-            if existing_vote.vote_type == -1:
+            if existing_vote.vote_type == -1: 
                 existing_vote.vote_type = vote_value
                 post.agree_count += 1
                 post.disagree_count -= 1
@@ -132,3 +138,54 @@ def vote_post(
     db_post = db.query(models.Post).options(joinedload(models.Post.owner)).filter(models.Post.id == post.id).first()
     
     return db_post
+
+# --- ENDPOINTS DE RESPOSTAS (REPLIES) ---
+
+@app.get("/posts/{post_id}/replies", response_model=List[schemas.ReplyResponse])
+def get_replies_for_post(post_id: int, db: Session = Depends(database.get_db)):
+
+    # Busca as respostas e já carrega os dados do 'owner' (autor)
+    replies = db.query(models.Reply).filter(models.Reply.post_id == post_id)\
+        .options(joinedload(models.Reply.owner))\
+        .order_by(models.Reply.created_at.asc())\
+        .all()
+    
+    return replies
+
+@app.post("/posts/{post_id}/replies", response_model=schemas.ReplyResponse, status_code=status.HTTP_201_CREATED)
+def create_reply_for_post(
+    post_id: int, 
+    reply: schemas.ReplyCreate, 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # 1. Verifica se o post principal existe
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post com id {post_id} não encontrado.")
+    
+    # 2. (Opcional) Verifica se a "resposta pai" (para aninhamento) existe
+    if reply.parent_reply_id:
+        parent_reply = db.query(models.Reply).filter(models.Reply.id == reply.parent_reply_id).first()
+        if not parent_reply:
+             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Resposta 'pai' com id {reply.parent_reply_id} não encontrada.")
+
+    # 3. Cria a nova resposta
+    new_reply = models.Reply(
+        content=reply.content,
+        post_id=post_id,
+        owner_id=current_user.id,
+        parent_reply_id=reply.parent_reply_id
+    )
+
+    db.add(new_reply)
+    db.commit()
+    db.refresh(new_reply)
+
+    # 4. Recarrega a resposta com os dados do 'owner' para a resposta
+    db_reply = db.query(models.Reply).options(joinedload(models.Reply.owner))\
+        .filter(models.Reply.id == new_reply.id).first()
+
+    return db_reply

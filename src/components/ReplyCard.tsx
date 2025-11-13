@@ -1,64 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card"; 
 import { Textarea } from "@/components/ui/textarea"; 
 import { Button } from "@/components/ui/button"; 
 import { MessageSquareReply, Trash2, CornerDownRight } from 'lucide-react';
-import { toast } from './ui/use-toast'; 
+import { useAuth } from '@/context/AuthContext';
+import { toast } from './ui/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { ReplyResponse } from '@/types';
 
-// Tipo de dados para respostas aninhadas (stubbed)
-interface ReplyData {
-    id: string;
-    postId: string;
-    userId: string;
-    authorName: string;
-    content: string;
-    timestamp: any;
-    parentReplyId?: string | null;
-} 
-
+// Props que o ReplyCard espera
 interface ReplyCardProps {
-    replyId: string;
-    postId: string;
-    userId: string; // ID do autor DESTA resposta
-    authorName: string;
-    content: string;
-    timestamp: string;
-    // Passado do CommentCard
-    isLoggedIn: boolean;
-    currentUserId: string | null;
+    replyData: ReplyResponse;     // A resposta que este card deve renderizar
+    allReplies: ReplyResponse[]; // A lista completa de todas as respostas do post
 } 
 
 export const ReplyCard: React.FC<ReplyCardProps> = ({
-    replyId, postId, userId, authorName, content, timestamp,
-    isLoggedIn, 
-    currentUserId 
+    replyData,
+    allReplies 
 }) => {
+    // 2. Pega os dados da resposta atual
+    const { id: replyId, post_id: postId, owner_id: userId } = replyData;
+    const authorName = replyData.owner.name;
+    const content = replyData.content;
+    const timestamp = format(new Date(replyData.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR });
+
     const [isReplyingToReply, setIsReplyingToReply] = useState(false);
     const [nestedReplyContent, setNestedReplyContent] = useState('');
-    const [nestedReplies, setNestedReplies] = useState<ReplyData[]>([]);
     const [showNestedReplies, setShowNestedReplies] = useState(false);
 
-    useEffect(() => {
-      if (showNestedReplies) {
-        // TODO: Implementar fetch para /api/posts/:postId/replies/:replyId/replies
-        console.warn("API de Respostas Aninhadas não implementada.");
-        // setNestedReplies(dadosDaApi);
-      } else {
-        setNestedReplies([]);
-      }
-    }, [showNestedReplies, postId, replyId]); 
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const isLoggedIn = !!user;
+    const isOwner = isLoggedIn && !isAuthLoading && user?.id === userId;
 
+    // 3. Lógica de Aninhamento: Encontra as respostas "filhas"
+    const nestedReplies = allReplies.filter(reply => reply.parent_reply_id === replyId);
+
+    // --- LÓGICA DE RESPOSTA ANINHADA ---
     const handleSendNestedReply = async () => {
       if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para responder.", variant: "destructive"}); return; }
-      if (!nestedReplyContent.trim()) return;
-      console.warn("API de Respostas Aninhadas não implementada.");
-      setIsReplyingToReply(false);
-      setNestedReplyContent('');
+      if (!nestedReplyContent.trim()) {
+        toast({ title: "Ops!", description: "A resposta não pode estar vazia.", variant: "destructive"});
+        return;
+      }
+      const token = localStorage.getItem('userToken');
+      if (!token) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8001/posts/${postId}/replies`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            content: nestedReplyContent,
+            parent_reply_id: replyId // <-- A MÁGICA: aninha a resposta
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao enviar resposta.");
+        }
+        
+        toast({ title: "Resposta enviada!" });
+        window.location.reload(); // Recarrega para ver a nova resposta aninhada
+
+      } catch (err) {
+         if (err instanceof Error) {
+            toast({ title: "Erro", description: err.message, variant: "destructive" });
+         }
+      }
     }; 
 
     const handleDeleteReply = async () => {
-      if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para deletar.", variant: "destructive"}); return; }
-      console.warn("API de Deletar Resposta não implementada.");
+      if (!isOwner) { toast({ title: "Acesso Negado", description: "Você não é o dono desta resposta.", variant: "destructive"}); return; }
+      
+      // TODO: Implementar endpoint 'DELETE /replies/{reply_id}'
+      console.warn("API de Deletar Resposta ainda não implementada.");
+      toast({ title: "Em breve", description: "A API para deletar respostas será implementada." });
     }; 
 
     return (
@@ -69,8 +93,7 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                         <h5 className="font-semibold text-foreground/90">{authorName}</h5>
                         <span className="text-xs text-muted-foreground">{timestamp}</span>
                     </div>
-                    {/* TODO: Lógica de 'currentUserId === userId' precisa ser validada com token */}
-                    {isLoggedIn && currentUserId === userId && (
+                    {isOwner && (
                         <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={handleDeleteReply} title="Apagar Resposta"> <Trash2 className="h-3 w-3" /> </Button>
                     )}
                 </div>
@@ -85,8 +108,14 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                     >
                         <MessageSquareReply className="h-3 w-3 mr-1" /> Responder
                     </Button> 
-                    {/* TODO: Esconder "Ver Respostas" se não houver respostas aninhadas */}
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs" onClick={() => setShowNestedReplies(!showNestedReplies)}> <CornerDownRight className="h-3 w-3 mr-1" /> {showNestedReplies ? "Ocultar" : "Ver"} Respostas </Button> 
+                    
+                    {/* 4. Só mostra o botão se houver respostas aninhadas */}
+                    {nestedReplies.length > 0 && (
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs" onClick={() => setShowNestedReplies(!showNestedReplies)}> 
+                        <CornerDownRight className="h-3 w-3 mr-1" /> 
+                        {showNestedReplies ? "Ocultar" : `Ver ${nestedReplies.length} ${nestedReplies.length > 1 ? "respostas" : "resposta"}`}
+                      </Button> 
+                    )}
                 </div>
 
                  {isReplyingToReply && (
@@ -99,15 +128,15 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
                     </div>
                  )}
 
+                 {/* 5. Bloco para Exibir Respostas ANINHADAS (Recursão) */}
                  {showNestedReplies && (
                     <div className="mt-3 pl-4 border-l-2 border-border/30 space-y-2"> 
                         {nestedReplies.length > 0 ? (
                             nestedReplies.map(nestedReply => (
                                 <ReplyCard
                                     key={nestedReply.id}
-                                    {...nestedReply}
-                                    isLoggedIn={isLoggedIn}
-                                    currentUserId={currentUserId}
+                                    replyData={nestedReply}
+                                    allReplies={allReplies}
                                 />
                             ))
                         ) : (
