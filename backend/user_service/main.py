@@ -1,17 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-import models
-import schemas
-import security
-import database
+from sqlalchemy.orm import Session
+
+import models, schemas, security, database, auth
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# --- Configuração do CORS --- 
+# --- Configuração do CORS ---
 origins = [
     "http://localhost:8080", 
     "http://127.0.0.1:8080",
@@ -26,10 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# --- Fim do Bloco CORS ---
 
 # --- Endpoint de Registro ---
-@app.post("/register/", response_model=schemas.User)
+@app.post("/register/", response_model=schemas.UserResponse)
 def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
@@ -69,3 +66,9 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+# --- NOVO ENDPOINT ---
+# Este endpoint é protegido e retorna o usuário logado
+@app.get("/users/me", response_model=schemas.UserResponse)
+def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+    return current_user

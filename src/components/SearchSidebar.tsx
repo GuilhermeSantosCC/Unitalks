@@ -4,45 +4,89 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { useNavigate } from "react-router-dom"; 
-import { CommentModal } from "./ui/CommentModal"; 
+import { CommentModal } from "./ui/CommentModal";
+import { useToast } from "./ui/use-toast"; //
 
 export function SearchSidebar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Estado de login
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate(); 
+  const { toast } = useToast();
 
-  // Verifica se o usuário está logado ao carregar o componente
   useEffect(() => {
     const token = localStorage.getItem('userToken');
-    setIsLoggedIn(!!token); // !! converte a string (ou null) para boolean
+    setIsLoggedIn(!!token); 
   }, []);
 
-  // Função de Logout (funcional)
   const handleLogout = () => {
-    localStorage.removeItem('userToken'); // Remove o token
+    localStorage.removeItem('userToken'); 
     setIsLoggedIn(false);
-    navigate('/login'); // Redireciona para o login
+    toast({ title: "Logout efetuado", description: "Até a próxima!" });
+    navigate('/login');
   };
 
-  // Função de Adicionar Comentário (apenas abre o modal)
   const handleAddComment = () => {
     if (!isLoggedIn) {
-      alert("Você precisa estar logado para adicionar um comentário.");
+      toast({
+        title: "Acesso Negado",
+        description: "Você precisa estar logado para criar um post.",
+        variant: "destructive"
+      });
       navigate('/login');
       return;
     }
     setIsModalOpen(true);
   };
 
-  // Função que o Modal vai chamar (ainda não implementada)
+  /**
+   * Esta é a função principal para criar um novo post.
+   * Ela será passada para o PostCommentModal.
+   */
   const submitNewPost = async (contentText: string) => {
-    console.warn("API de Posts não implementada.");
-    console.log("Conteúdo:", contentText);
-    // Lógica da API de Posts virá aqui em outra branch
-    setIsModalOpen(false);
-  };
+    const token = localStorage.getItem('userToken');
 
+    if (!token) {
+      toast({ title: "Erro de Autenticação", description: "Seu login expirou. Por favor, faça login novamente.", variant: "destructive" });
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const postData = {
+        content: contentText
+      };
+
+      const response = await fetch("http://127.0.0.1:8001/posts/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify(postData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Falha ao criar o post.");
+      }
+
+      toast({ title: "Post Criado!", description: "Seu post foi adicionado ao feed." });
+      setIsModalOpen(false);
+      
+      // substituir por uma atualização de 'state' em cache
+      window.location.reload(); 
+
+    } catch (err) {
+      if (err instanceof Error) {
+        toast({ title: "Erro", description: err.message, variant: "destructive" });
+      } else {
+        toast({ title: "Erro", description: "Um erro inesperado ocorreu.", variant: "destructive" });
+      }
+      console.error("Erro ao submeter post:", err);
+    }
+  };
+  
   return (
     <div className="w-80 p-6">
       <div className="mb-6">
@@ -104,11 +148,11 @@ export function SearchSidebar() {
         </Card>
       )}
 
-      {/* O Modal de comentário agora é "burro" */}
+      {/* O PostCommentModal agora recebe a função 'submitNewPost' real */}
       <CommentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={submitNewPost} // Chama a função stubbed
+        onSubmit={submitNewPost} 
       />
     </div>
   );

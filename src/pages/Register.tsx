@@ -27,6 +27,7 @@ const Register: React.FC = () => {
     setLoading(true);
     setError('');
 
+    // Validações de Front-end
     if (!name || !email || !college || !course || !password || !confirmPassword) {
       setError('Por favor, preencha todos os campos obrigatórios.');
       setLoading(false);
@@ -52,6 +53,7 @@ const Register: React.FC = () => {
     };
     
     try {
+      // Note: A URL aponta para a porta 8000 (user_service)
       const response = await fetch("http://127.0.0.1:8000/register/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,13 +75,15 @@ const Register: React.FC = () => {
       navigate('/login'); 
 
     } catch (err) {
-      console.error("Falha ao conectar na API:", err); // Manter console.error para debug
-      setError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
+      // Erro de rede (API desligada ou CORS)
+      console.error("Falha ao conectar na API de Registro:", err);
+      setError('Não foi possível conectar ao servidor. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
+  // JSX (sem alteração)
   return (
     <div className="login-container">
       <div className="login-box">

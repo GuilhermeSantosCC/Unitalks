@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card"; 
 import { Textarea } from "@/components/ui/textarea"; 
 import { Button } from "@/components/ui/button"; 
-import { MessageSquareReply, Trash2, CornerDownRight } from 'lucide-react'; 
+import { MessageSquareReply, Trash2, CornerDownRight } from 'lucide-react';
+import { toast } from './ui/use-toast'; 
 
+// Tipo de dados para respostas aninhadas (stubbed)
 interface ReplyData {
     id: string;
     postId: string;
@@ -38,9 +40,7 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
 
     useEffect(() => {
       if (showNestedReplies) {
-        //
         // TODO: Implementar fetch para /api/posts/:postId/replies/:replyId/replies
-        //
         console.warn("API de Respostas Aninhadas não implementada.");
         // setNestedReplies(dadosDaApi);
       } else {
@@ -49,12 +49,15 @@ export const ReplyCard: React.FC<ReplyCardProps> = ({
     }, [showNestedReplies, postId, replyId]); 
 
     const handleSendNestedReply = async () => {
-      if (!isLoggedIn) { alert("Faça login para responder."); return; }
+      if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para responder.", variant: "destructive"}); return; }
+      if (!nestedReplyContent.trim()) return;
       console.warn("API de Respostas Aninhadas não implementada.");
+      setIsReplyingToReply(false);
+      setNestedReplyContent('');
     }; 
 
     const handleDeleteReply = async () => {
-      if (!isLoggedIn) { alert("Faça login para deletar."); return; }
+      if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para deletar.", variant: "destructive"}); return; }
       console.warn("API de Deletar Resposta não implementada.");
     }; 
 

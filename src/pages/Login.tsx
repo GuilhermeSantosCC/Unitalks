@@ -63,10 +63,11 @@ const Login: React.FC = () => {
         title: "Login efetuado!",
         description: "Você será redirecionado para a página principal.",
       });
-      navigate('/'); 
+      navigate('/');
 
     } catch (err) {
-      console.error("Falha ao conectar na API:", err);
+      // Erro de rede (API desligada ou CORS)
+      console.error("Falha ao conectar na API de Login:", err);
       setError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
     } finally {
       setLoading(false);

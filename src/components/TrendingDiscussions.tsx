@@ -12,9 +12,7 @@ export function TrendingDiscussions() {
   const [topics, setTopics] = useState<Topic[]>([]);
 
   useEffect(() => {
-    //
-    // TODO: Implementar a chamada 'fetch' para a API de Posts (GET /api/trending)
-    //
+    // TODO: A lógica 'fetch' da API de Posts (GET /api/trending) virá na branch 'feature/api-posts'
     console.warn("TrendingDiscussions: API de Trending não implementada.");
     // setTopics(dadosDaApi);
   }, []);
@@ -43,7 +41,25 @@ export function TrendingDiscussions() {
               key={topic.id}
               className="p-4 bg-gradient-card border-tech-gray hover:border-tech-purple/50 transition-all duration-300 cursor-pointer group"
             >
-              {/* ... JSX do Card (sem alteração) ... */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-foreground group-hover:text-tech-purple transition-colors">
+                    {topic.title}
+                  </h3>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <span className="text-tech-green">↑</span>
+                      {topic.votes}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      💬 {topic.comments}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs font-medium text-tech-purple ml-2">
+                  #{index + 1}
+                </div>
+              </div>
             </Card>
           ))
         ) : (

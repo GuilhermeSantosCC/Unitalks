@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/use-toast";
 interface PostCommentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Esta função será passada pelo SearchSidebar
+  // Esta função é passada pelo SearchSidebar
   onSubmit: (content: string) => Promise<void>; 
 }
 
@@ -21,16 +21,15 @@ export function PostCommentModal({ isOpen, onClose, onSubmit }: PostCommentModal
       return;
     }
     
-    // O token é verificado na função 'onSubmit' (no SearchSidebar)
-
     setIsPosting(true);
     try {
-      // Chama a função que foi passada como prop
+      // Chama a função que foi passada pelo SearchSidebar
+      // A lógica real (o 'fetch' da API de Posts) estará lá
       await onSubmit(content); 
-
-      // Se a função 'onSubmit' for bem-sucedida, limpa o modal
+      
+      // Limpa o conteúdo e fecha o modal ao submeter
       setContent("");
-      onClose(); // Fechar o modal é responsabilidade do 'onSubmit' (SearchSidebar)
+      onClose(); 
       
     } catch (error) {
       console.error("Erro ao postar comentário:", error);
@@ -39,6 +38,13 @@ export function PostCommentModal({ isOpen, onClose, onSubmit }: PostCommentModal
       setIsPosting(false);
     }
   };
+
+  // Limpa o textarea quando o modal é fechado
+  React.useEffect(() => {
+    if (!isOpen) {
+      setContent("");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

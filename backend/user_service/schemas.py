@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
-# Schema base, com os campos que vêm do Register.tsx
+# Define o que o /register espera
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
@@ -9,13 +9,13 @@ class UserCreate(BaseModel):
     course: Optional[str] = None
     password: str
 
-# Schema para o login
+# Define o que o /login espera
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-# Schema para retornar dados (NUNCA retorne a senha)
-class User(BaseModel):
+# Define o que a API devolve (para /register e /users/me)
+class UserResponse(BaseModel):
     id: int
     name: str
     email: EmailStr
@@ -23,9 +23,9 @@ class User(BaseModel):
     course: Optional[str] = None
 
     class Config:
-        orm_mode = True # Permite o Pydantic ler o modelo SQLAlchemy
+        from_attributes = True
 
-# Schema para o token de login
+# Define o que a API /token devolve
 class Token(BaseModel):
     access_token: str
     token_type: str
