@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm # Para o form de login
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models
@@ -7,30 +7,30 @@ import schemas
 import security
 import database
 
-# Cria as tabelas no banco de dados (se não existirem)
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# --- Configuração do CORS --- (ADICIONE ESTE BLOCO)
+# --- Configuração do CORS --- 
 origins = [
-    "http://localhost:8080", # A porta do seu React (Vite)
+    "http://localhost:8080", 
     "http://127.0.0.1:8080",
+    "http://192.168.0.148:8080",
+    "http://127.0.0.1:8001",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Permite que o localhost:8080 faça requisições
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Permite todos os métodos (GET, POST, etc)
-    allow_headers=["*"], # Permite todos os cabeçalhos
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # --- Fim do Bloco CORS ---
 
 # --- Endpoint de Registro ---
 @app.post("/register/", response_model=schemas.User)
 def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    # 1. Verifica se o email já existe
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(
@@ -38,10 +38,8 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
             detail="Email already registered"
         )
     
-    # 2. Cria o hash da senha
     hashed_password = security.get_password_hash(user.password)
     
-    # 3. Cria o novo usuário no banco
     db_user = models.User(
         email=user.email,
         name=user.name,
@@ -57,10 +55,8 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
 # --- Endpoint de Login ---
 @app.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    # 1. Encontra o usuário pelo email (o form usa 'username' por padrão)
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
 
-    # 2. Verifica se o usuário existe e se a senha está correta
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,7 +64,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # 3. Cria o token de acesso
     access_token = security.create_access_token(
         data={"sub": user.email}
     )

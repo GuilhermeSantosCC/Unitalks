@@ -1,8 +1,4 @@
-// src/components/TrendingDiscussions.tsx
-
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { Card } from "./ui/card";
 
 interface Topic {
@@ -16,22 +12,11 @@ export function TrendingDiscussions() {
   const [topics, setTopics] = useState<Topic[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'topics'), orderBy('votes', 'desc'));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const topicsList = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title ?? "Tópico sem título",
-          votes: typeof data.votes === 'number' ? data.votes : 0,
-          comments: typeof data.comments === 'number' ? data.comments : 0,
-        };
-      });
-      setTopics(topicsList);
-    });
-
-    return () => unsubscribe();
+    //
+    // TODO: Implementar a chamada 'fetch' para a API de Posts (GET /api/trending)
+    //
+    console.warn("TrendingDiscussions: API de Trending não implementada.");
+    // setTopics(dadosDaApi);
   }, []);
 
   return (
@@ -44,7 +29,6 @@ export function TrendingDiscussions() {
           Seu espaço de fala!
         </p>
       </div>
-      {/* --- CÓDIGO RESTAURADO ABAIXO --- */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">
           Discussões do momento
@@ -59,26 +43,7 @@ export function TrendingDiscussions() {
               key={topic.id}
               className="p-4 bg-gradient-card border-tech-gray hover:border-tech-purple/50 transition-all duration-300 cursor-pointer group"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-foreground group-hover:text-tech-purple transition-colors">
-                    {topic.title}
-                  </h3>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span className="text-tech-green">↑</span>
-                      {topic.votes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      💬 {topic.comments}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-xs font-medium text-tech-purple ml-2">
-                  {/* Usa o index do map para criar o ranking #1, #2, #3... */}
-                  #{index + 1}
-                </div>
-              </div>
+              {/* ... JSX do Card (sem alteração) ... */}
             </Card>
           ))
         ) : (

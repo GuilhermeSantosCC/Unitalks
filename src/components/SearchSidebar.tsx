@@ -1,91 +1,55 @@
-// src/components/SearchSidebar.tsx
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut, User } from "lucide-react"; // 👈 adicionado o ícone de perfil
+import { Search, Plus, LogOut, User } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
-import { db, auth } from "@/firebase";
-import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom"; // 👈 import do hook de navegação
-import { CommentModal } from "./ui/CommentModal"; // 👈 popup
+import { useNavigate } from "react-router-dom"; 
+import { CommentModal } from "./ui/CommentModal"; 
 
 export function SearchSidebar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [authorDisplayName, setAuthorDisplayName] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Estado de login
+  const navigate = useNavigate(); 
 
-  const navigate = useNavigate(); // 👈 hook para navegar
-
-  // --- Observador de login ---
+  // Verifica se o usuário está logado ao carregar o componente
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const userDocRef = doc(db, "users", user.uid);
-        try {
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setAuthorDisplayName(userDocSnap.data().name);
-          } else {
-            console.warn("Documento do usuário não encontrado, usando email como nome.");
-            setAuthorDisplayName(user.email);
-          }
-        } catch (error) {
-          console.error("Erro ao buscar nome do usuário:", error);
-          setAuthorDisplayName(user.email);
-        }
-      } else {
-        setAuthorDisplayName(null);
-      }
-    });
-    return () => unsubscribe();
+    const token = localStorage.getItem('userToken');
+    setIsLoggedIn(!!token); // !! converte a string (ou null) para boolean
   }, []);
 
-  // --- Função de adicionar comentário ---
-  const handleAddComment = async (contentText: string) => {
-    if (!currentUser) {
+  // Função de Logout (funcional)
+  const handleLogout = () => {
+    localStorage.removeItem('userToken'); // Remove o token
+    setIsLoggedIn(false);
+    navigate('/login'); // Redireciona para o login
+  };
+
+  // Função de Adicionar Comentário (apenas abre o modal)
+  const handleAddComment = () => {
+    if (!isLoggedIn) {
       alert("Você precisa estar logado para adicionar um comentário.");
+      navigate('/login');
       return;
     }
-
-    const authorNameToSave = authorDisplayName || currentUser.email || "Anônimo";
-
-    try {
-      await addDoc(collection(db, "posts"), {
-        userId: currentUser.uid,
-        authorName: authorNameToSave,
-        content: contentText,
-        agreeCount: 0,
-        disagreeCount: 0,
-        timestamp: serverTimestamp(),
-      });
-    } catch (e) {
-      console.error("Erro ao adicionar documento: ", e);
-    }
+    setIsModalOpen(true);
   };
 
-  // --- Logout ---
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-      alert("Ocorreu um erro ao tentar sair.");
-    }
+  // Função que o Modal vai chamar (ainda não implementada)
+  const submitNewPost = async (contentText: string) => {
+    console.warn("API de Posts não implementada.");
+    console.log("Conteúdo:", contentText);
+    // Lógica da API de Posts virá aqui em outra branch
+    setIsModalOpen(false);
   };
 
-  // --- JSX ---
   return (
     <div className="w-80 p-6">
       <div className="mb-6">
-        {/* Título */}
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Aba de Pesquisa
         </h2>
 
-        {/* Campo de busca */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -97,19 +61,16 @@ export function SearchSidebar() {
           />
         </div>
 
-        {/* Botão Adicionar Comentário */}
         <Button
-          onClick={() => setIsModalOpen(true)} // 👈 abre o modal
-          disabled={!currentUser}
-          className="w-full bg-tech-purple hover:bg-tech-purple-dark text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-glow-purple group disabled:opacity-50 disabled:cursor-not-allowed mb-4"
-          title={!currentUser ? 'Faça login para comentar' : 'Adicionar Comentário'}
+          onClick={handleAddComment}
+          className="w-full bg-tech-purple hover:bg-tech-purple-dark text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-glow-purple group mb-4"
+          title={!isLoggedIn ? 'Faça login para comentar' : 'Adicionar Comentário'}
         >
           <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
           Adicionar Comentário
         </Button>
 
-        {/* Botão de Perfil 👇 */}
-        {currentUser && (
+        {isLoggedIn && (
           <Button
             onClick={() => navigate("/profile")}
             variant="outline"
@@ -120,8 +81,7 @@ export function SearchSidebar() {
           </Button>
         )}
 
-        {/* Botão de Logout */}
-        {currentUser && (
+        {isLoggedIn && (
           <Button
             onClick={handleLogout}
             variant="outline"
@@ -133,7 +93,6 @@ export function SearchSidebar() {
         )}
       </div>
 
-      {/* Card de busca */}
       {searchTerm && (
         <Card className="p-4 bg-gradient-card border-tech-gray">
           <h3 className="text-sm font-medium text-foreground mb-2">
@@ -145,11 +104,11 @@ export function SearchSidebar() {
         </Card>
       )}
 
-      {/* Modal de comentário */}
+      {/* O Modal de comentário agora é "burro" */}
       <CommentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddComment}
+        onSubmit={submitNewPost} // Chama a função stubbed
       />
     </div>
   );

@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.environ.get("DATABASE_URL") 
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL is None:
     raise ValueError("Variável de ambiente DATABASE_URL não encontrada. Crie o .env")

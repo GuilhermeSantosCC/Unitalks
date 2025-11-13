@@ -1,24 +1,22 @@
-
-
 import React, { 
     useState, 
     FormEvent, 
     ChangeEvent 
 } from 'react';
 import { useNavigate } from 'react-router-dom'; 
+import { useToast } from "@/components/ui/use-toast";
 import './Login.css'; 
-
 
 const Login: React.FC = () => {
   
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   
-  // Hook de navegação (útil após o login)
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // 2. Funções de handler de mudança (Tipando o evento: ChangeEvent<HTMLInputElement>)
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
       setEmail(e.target.value);
   }
@@ -27,53 +25,51 @@ const Login: React.FC = () => {
       setPassword(e.target.value);
   }
 
-  // 3. Função de Submissão (Tipando o evento: FormEvent<HTMLFormElement>)
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Impede o recarregamento da página
+    e.preventDefault(); 
+    setLoading(true);
+    setError('');
 
-    // Validação básica
     if (!email || !password) {
       setError('Por favor, preencha todos os campos.');
+      setLoading(false);
       return;
     }
 
-    setError(''); 
-
-    // *** 4. Lógica de Autenticação (Integração com o Backend) ***
-    console.log('Tentativa de Login com:', { email, password });
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
 
     try {
-        // --- SUBSTITUA ESTA SIMULAÇÃO PELA SUA CHAMADA REAL À API ---
-        
-        // Exemplo:
-        // const response = await fetch('/api/login', { 
-        //   method: 'POST', 
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ email, password }) 
-        // });
-        
-        // if (!response.ok) {
-        //     // Tratar erro HTTP
-        //     throw new Error('Erro na requisição');
-        // }
-        
-        // const data = await response.json();
-        
-        // SIMULAÇÃO DE SUCESSO:
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const data = { success: true, token: 'fake-token-do-unitalks' };
-        
-        if (data.success) {
-            localStorage.setItem('userToken', data.token); // Salva o token
-            alert('Login SIMULADO realizado com sucesso! Redirecionando...');
-            navigate('/'); 
-        } else {
-            setError('Credenciais inválidas. Verifique seu email e senha.'); 
-        }
+      const response = await fetch("http://127.0.0.1:8000/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData, 
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || "Email ou senha inválidos.");
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('userToken', data.access_token);
+      
+      toast({
+        title: "Login efetuado!",
+        description: "Você será redirecionado para a página principal.",
+      });
+      navigate('/'); 
 
     } catch (err) {
-        
-        setError('Ocorreu um erro na comunicação com o servidor. Tente novamente.');
+      console.error("Falha ao conectar na API:", err);
+      setError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,7 +82,6 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit}>
           
-          {/* Campo de Email */}
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input
@@ -99,7 +94,6 @@ const Login: React.FC = () => {
             />
           </div>
 
-          {/* Campo de Senha */}
           <div className="form-group">
             <label htmlFor="password">Senha:</label>
             <input
@@ -114,8 +108,12 @@ const Login: React.FC = () => {
 
           {error && <p className="error-message">{error}</p>}
 
-          <button type="submit" className="login-button">
-            Entrar
+          <button 
+            type="submit" 
+            className="login-button"
+            disabled={loading}
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 

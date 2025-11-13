@@ -10,4 +10,3 @@ class User(Base):
     college = Column(String, nullable=True)
     course = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
-    # is_active = Column(Boolean, default=True) # Exemplo se precisar

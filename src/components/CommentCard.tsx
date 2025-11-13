@@ -9,29 +9,13 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { db, auth } from "@/firebase";
-import {
-  doc,
-  updateDoc,
-  increment,
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  orderBy,
-  onSnapshot,
-  deleteDoc,
-  getDocs,
-  writeBatch,
-} from "firebase/firestore";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { onAuthStateChanged, User } from "firebase/auth";
 import { ReplyCard } from "./ReplyCard";
 
 interface CommentCardProps {
   id: string;
-  userId: string;
+  userId?: string; // Alterado para opcional
   author: string;
   content: string;
   agreeCount: number;
@@ -59,92 +43,41 @@ export function CommentCard({
   const [userVote, setUserVote] = useState<"agree" | "disagree" | null>(null);
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [replies, setReplies] = useState<ReplyData[]>([]);
   const [showReplies, setShowReplies] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
+  // Lógica de login simples
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) =>
-      setCurrentUser(user)
-    );
-    return () => unsubscribe();
+    // TODO: O token JWT não nos diz o ID do usuário diretamente
+    // Precisaremos de um endpoint /api/me para buscar o usuário logado
+    // Por enquanto, vamos apenas checar se o token existe.
+    const token = localStorage.getItem('userToken');
+    setIsLoggedIn(!!token);
+    // setCurrentUserId(idDoTokenDecodificado); // Isso virá na API de Posts
   }, []);
 
-  useEffect(() => {
-    const fetchReplies = async () => {
-      const repliesRef = collection(db, "posts", id, "replies");
-      const q = query(repliesRef, orderBy("timestamp", "asc"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedReplies = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          author: doc.data().author,
-          content: doc.data().content,
-          // CORREÇÃO: Acessa o objeto Timestamp e converte para Date antes de formatar
-          timestamp: doc.data().timestamp?.toDate().toLocaleString("pt-BR") || "Data desconhecida",
-          userId: doc.data().userId,
-        }));
-        setReplies(fetchedReplies);
-      });
-      return unsubscribe;
-    };
-    fetchReplies();
-  }, [id]);
-
   const handleVote = async (type: "agree" | "disagree") => {
-    if (!currentUser) return;
-    const postRef = doc(db, "posts", id);
-    const field = type === "agree" ? "agreeCount" : "disagreeCount";
-
-    if (userVote === type) {
-      // Remover voto
-      await updateDoc(postRef, { [field]: increment(-1) });
-      setUserVote(null);
-    } else {
-      // Mudar voto ou adicionar novo voto
-      if (userVote) {
-        // Se já tinha um voto, remove o voto oposto
-        const oppositeField =
-          userVote === "agree" ? "agreeCount" : "disagreeCount";
-        await updateDoc(postRef, { [oppositeField]: increment(-1) });
-      }
-      await updateDoc(postRef, { [field]: increment(1) });
-      setUserVote(type);
-    }
-    // NOTA: Para um sistema de votos robusto, você também precisaria
-    // salvar a informação do voto do usuário em uma subcoleção separada para evitar que ele vote infinitamente.
+    if (!isLoggedIn) { alert("Faça login para votar."); return; }
+    console.warn("API de Votos não implementada.");
   };
 
   const handleReply = async () => {
-    if (!replyContent.trim() || !currentUser) return;
-    const replyRef = collection(db, "posts", id, "replies");
-    await addDoc(replyRef, {
-      author: currentUser.displayName || "Anônimo",
-      content: replyContent,
-      timestamp: serverTimestamp(),
-      userId: currentUser.uid,
-    });
+    if (!isLoggedIn) { alert("Faça login para responder."); return; }
+    console.warn("API de Respostas não implementada.");
+    // Lógica da API de Posts (POST /api/posts/:id/reply) virá aqui
     setReplyContent("");
     setIsReplying(false);
   };
 
   const confirmDelete = async () => {
+    if (!isLoggedIn) { alert("Faça login para deletar."); return; }
+    console.warn("API de Deletar não implementada.");
+    // Lógica da API de Posts (DELETE /api/posts/:id) virá aqui
     setIsDeleteModalOpen(false);
-    try {
-      // Deleta todas as respostas primeiro
-      const repliesRef = collection(db, "posts", id, "replies");
-      const repliesSnapshot = await getDocs(repliesRef);
-      const batch = writeBatch(db);
-      repliesSnapshot.forEach((replyDoc) => batch.delete(replyDoc.ref));
-      await batch.commit();
-
-      // Deleta o post principal
-      const postRef = doc(db, "posts", id);
-      await deleteDoc(postRef);
-      console.log("Post e respostas deletados com sucesso!");
-    } catch (error) {
-      console.error("Erro ao deletar post:", error);
-    }
   };
 
   return (
@@ -161,7 +94,8 @@ export function CommentCard({
                   </span>
                 </div>
 
-                {currentUser && currentUser.uid === userId && (
+                {/* TODO: A lógica 'currentUserId === userId' precisará ser validada com o token */}
+                {isLoggedIn && currentUserId === userId && ( 
                   <Button
                     variant="danger"
                     size="icon"
@@ -199,6 +133,7 @@ export function CommentCard({
                   variant="subtle"
                   size="sm"
                   onClick={() => setIsReplying(!isReplying)}
+                  disabled={!isLoggedIn}
                 >
                   <MessageSquareReply className="h-4 w-4" />
                   Responder
@@ -242,10 +177,8 @@ export function CommentCard({
                       timestamp={reply.timestamp}
                       userId={reply.userId}
                       postId={id}
-                      currentUser={currentUser}
-                      loggedInUserDisplayName={
-                        currentUser?.displayName || "Anônimo"
-                      }
+                      isLoggedIn={isLoggedIn}
+                      currentUserId={currentUserId}
                     />
                   ))}
                 </div>

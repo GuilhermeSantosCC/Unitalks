@@ -9,9 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, User, Link, Edit } from "lucide-react";
 import { CommentCard } from "@/components/CommentCard";
 import { PostCommentModal } from "@/components/PostCommentModal";
-import { db, auth } from "@/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged, User as AuthUser } from "firebase/auth";
 
 interface UserProfile {
   username: string;
@@ -56,47 +53,6 @@ export function ProfilePage() {
     uniLink: "https://unneg/ioussbe",
     isEditing: false,
   });
-
-  const fetchUserPosts = (uid: string) => {
-    const postsRef = collection(db, "posts");
-    const q = query(postsRef, where("userId", "==", uid));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetchedPosts: PostData[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            userId: data.userId,
-            author: data.author,
-            content: data.content,
-            agreeCount: data.agreeCount || 0,
-            disagreeCount: data.disagreeCount || 0,
-            timestamp: data.timestamp?.toDate().toLocaleString("pt-BR") || "Data desconhecida",
-          };
-        });
-        setUserPosts(fetchedPosts);
-      },
-      (error) => {
-        console.error("Erro ao buscar posts:", error);
-      }
-    );
-
-    return unsubscribe;
-  };
-
-  React.useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const postsUnsubscribe = fetchUserPosts(user.uid);
-        return () => postsUnsubscribe();
-      }
-      setUserPosts([]);
-    });
-    return () => authUnsubscribe();
-  }, []);
 
   const handleSaveProfile = (data: {
     bio: string;

@@ -1,50 +1,37 @@
-// components/PostCommentModal.tsx
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
-import { db, auth } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "@/components/ui/use-toast"; // Assumindo que você usa um sistema de toast/notificação
+import { toast } from "@/components/ui/use-toast";
 
 interface PostCommentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Opcional: Se a postagem estiver relacionada a um ID de discussão, adicione aqui.
-  // Neste caso, vamos criar um novo post geral.
-  // discussionId?: string; 
+  // Esta função será passada pelo SearchSidebar
+  onSubmit: (content: string) => Promise<void>; 
 }
 
-export function PostCommentModal({ isOpen, onClose }: PostCommentModalProps) {
+export function PostCommentModal({ isOpen, onClose, onSubmit }: PostCommentModalProps) {
   const [content, setContent] = React.useState("");
   const [isPosting, setIsPosting] = React.useState(false);
-  const currentUser = auth.currentUser; // Pega o usuário logado
 
   const handlePost = async () => {
     if (!content.trim()) {
       toast({ title: "Ops!", description: "O comentário não pode estar vazio.", variant: "destructive" });
       return;
     }
-    if (!currentUser) {
-      toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para comentar.", variant: "destructive" });
-      return;
-    }
+    
+    // O token é verificado na função 'onSubmit' (no SearchSidebar)
 
     setIsPosting(true);
     try {
-      // Cria um novo post na coleção 'posts' (que seus CommentCards leem)
-      await addDoc(collection(db, "posts"), {
-        userId: currentUser.uid,
-        author: currentUser.displayName || "Usuário Anônimo",
-        content: content,
-        agreeCount: 0,
-        disagreeCount: 0,
-        timestamp: serverTimestamp(),
-      });
+      // Chama a função que foi passada como prop
+      await onSubmit(content); 
 
-      toast({ title: "Sucesso!", description: "Seu comentário foi postado.", variant: "default" });
+      // Se a função 'onSubmit' for bem-sucedida, limpa o modal
       setContent("");
-      onClose();
+      onClose(); // Fechar o modal é responsabilidade do 'onSubmit' (SearchSidebar)
+      
     } catch (error) {
       console.error("Erro ao postar comentário:", error);
       toast({ title: "Erro", description: "Falha ao enviar o comentário. Tente novamente.", variant: "destructive" });
