@@ -9,10 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, User, Link, Edit } from "lucide-react";
 import { CommentCard } from "@/components/CommentCard";
 import { PostCommentModal } from "@/components/PostCommentModal";
-import { db, auth } from "@/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged, User as AuthUser } from "firebase/auth";
+import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
+// Interface para os dados do perfil (será usado pela API)
 interface UserProfile {
   username: string;
   profileName: string;
@@ -21,9 +21,9 @@ interface UserProfile {
   linkedin: string;
   instagram: string;
   uniLink: string;
-  isEditing: boolean;
 }
 
+// Interface para os posts (será usado pela API)
 interface PostData {
   id: string;
   userId: string;
@@ -34,6 +34,7 @@ interface PostData {
   timestamp: string;
 }
 
+// Mock (dados falsos) apenas para a barra lateral
 const mockDiscussions = [
   { id: 1, title: "TypeScript vs JavaScript", views: "1.142", comments: "98" },
   { id: 2, title: "React vs Vue.js", views: "1.117", comments: "45" },
@@ -43,79 +44,65 @@ const mockDiscussions = [
 export function ProfilePage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = React.useState(false);
-  const [currentUser, setCurrentUser] = React.useState<AuthUser | null>(null);
   const [userPosts, setUserPosts] = React.useState<PostData[]>([]);
-
-  const [userProfile, setUserProfile] = React.useState<UserProfile>({
-    username: "@nomedousuário",
-    profileName: "Nome Completo do Usuário",
-    bio: "Olá! Sou um entusiasta da tecnologia e desenvolvimento web. Gosto de discutir frameworks e novas tendências.",
-    photoUrl: "[Imagem de Perfil]",
-    linkedin: "https://linkedin.com/in/",
-    instagram: "https://instagram.com/",
-    uniLink: "https://unneg/ioussbe",
-    isEditing: false,
-  });
-
-  const fetchUserPosts = (uid: string) => {
-    const postsRef = collection(db, "posts");
-    const q = query(postsRef, where("userId", "==", uid));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetchedPosts: PostData[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            userId: data.userId,
-            author: data.author,
-            content: data.content,
-            agreeCount: data.agreeCount || 0,
-            disagreeCount: data.disagreeCount || 0,
-            timestamp: data.timestamp?.toDate().toLocaleString("pt-BR") || "Data desconhecida",
-          };
-        });
-        setUserPosts(fetchedPosts);
-      },
-      (error) => {
-        console.error("Erro ao buscar posts:", error);
-      }
-    );
-
-    return unsubscribe;
-  };
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  
+  const navigate = useNavigate();
 
   React.useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const postsUnsubscribe = fetchUserPosts(user.uid);
-        return () => postsUnsubscribe();
-      }
-      setUserPosts([]);
-    });
-    return () => authUnsubscribe();
-  }, []);
+    const token = localStorage.getItem('userToken');
+    if (!token) {
+      toast({ title: "Acesso Negado", description: "Você precisa estar logado para ver seu perfil.", variant: "destructive" });
+      navigate('/login');
+      return;
+    }
 
-  const handleSaveProfile = (data: {
-    bio: string;
-    profileName: string;
-    username: string;
-    linkedin: string;
-    instagram: string;
-    uniLink: string;
-  }) => {
-    setUserProfile((prev) => ({
+    // TODO: Implementar 'fetch' para /api/users/me (usando token)
+    // Isso trará os dados do usuário logado
+    console.warn("ProfilePage: API /api/users/me não implementada.");
+    // Por enquanto, usamos dados falsos
+    setUserProfile({
+      username: "@carregando...",
+      profileName: "Carregando Perfil...",
+      bio: "Carregando bio...",
+      photoUrl: "",
+      linkedin: "",
+      instagram: "",
+      uniLink: "",
+    });
+
+    // TODO: Implementar 'fetch' para /api/users/me/posts (usando token)
+    console.warn("ProfilePage: API /api/users/me/posts não implementada.");
+    // setUserPosts(dadosDosPosts);
+
+  }, [navigate]);
+
+  const handleSaveProfile = async (data: Omit<UserProfile, 'photoUrl' | 'isEditing'>) => {
+    // TODO: Implementar 'fetch' para (PUT /api/users/me) para salvar o perfil
+    console.warn("ProfilePage: API de Edição de Perfil não implementada.");
+    toast({ title: "Simulado", description: "Perfil salvo (simulação)." });
+    setUserProfile((prev) => prev ? {
       ...prev,
-      bio: data.bio,
-      profileName: data.profileName,
+      ...data,
       username: `@${data.username.replace("@", "")}`,
-      linkedin: data.linkedin,
-      instagram: data.instagram,
-      uniLink: data.uniLink,
-    }));
+    } : null);
   };
+
+  const submitNewPost = async (content: string) => {
+     // TODO: Implementar 'fetch' para (POST /api/posts)
+     console.warn("API de Posts não implementada (via ProfilePage).");
+     toast({ title: "Post (Simulado)", description: "API de Posts ainda não conectada." });
+     setIsPostModalOpen(false);
+  };
+
+  // Se o perfil ainda não foi carregado
+  if (!userProfile) {
+    return (
+       <div className="min-h-screen bg-[#111111] text-white p-8 text-center">
+         Carregando perfil...
+       </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#111111] text-white p-4 md:p-8">
@@ -156,6 +143,7 @@ export function ProfilePage() {
             <CardContent className="p-6 -mt-16">
               <div className="flex items-end space-x-4">
                 <div className="w-24 h-24 rounded-full bg-gray-700 border-4 border-[#1D1D1D] flex items-center justify-center">
+                  {/* TODO: Ligar com userProfile.photoUrl */}
                   <User className="w-12 h-12 text-gray-400" />
                 </div>
                 <div className="flex-grow">
@@ -230,7 +218,7 @@ export function ProfilePage() {
           <Tabs defaultValue="feitos" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-[#252525] border border-gray-700">
               <TabsTrigger value="feitos">Comentários Feitos ({userPosts.length})</TabsTrigger>
-              <TabsTrigger value="curtidos">Curtidos (1)</TabsTrigger>
+              <TabsTrigger value="curtidos">Curtidos (0)</TabsTrigger>
             </TabsList>
 
             <TabsContent value="feitos" className="mt-4 grid gap-4">
@@ -243,6 +231,11 @@ export function ProfilePage() {
                   Nenhum comentário ainda.
                 </p>
               )}
+            </TabsContent>
+            <TabsContent value="curtidos" className="mt-4 grid gap-4">
+               <p className="text-gray-400 text-center p-8 bg-[#1D1D1D] rounded-lg">
+                  Funcionalidade de posts curtidos ainda não implementada.
+                </p>
             </TabsContent>
           </Tabs>
         </main>
@@ -285,7 +278,11 @@ export function ProfilePage() {
         }}
       />
 
-      <PostCommentModal isOpen={isPostModalOpen} onClose={() => setIsPostModalOpen(false)} />
+      <PostCommentModal 
+        isOpen={isPostModalOpen} 
+        onClose={() => setIsPostModalOpen(false)}
+        onSubmit={submitNewPost} 
+      />
     </div>
   );
 }

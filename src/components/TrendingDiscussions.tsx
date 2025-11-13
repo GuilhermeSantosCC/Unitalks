@@ -1,8 +1,4 @@
-// src/components/TrendingDiscussions.tsx
-
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { Card } from "./ui/card";
 
 interface Topic {
@@ -16,22 +12,9 @@ export function TrendingDiscussions() {
   const [topics, setTopics] = useState<Topic[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'topics'), orderBy('votes', 'desc'));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const topicsList = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title ?? "Tópico sem título",
-          votes: typeof data.votes === 'number' ? data.votes : 0,
-          comments: typeof data.comments === 'number' ? data.comments : 0,
-        };
-      });
-      setTopics(topicsList);
-    });
-
-    return () => unsubscribe();
+    // TODO: A lógica 'fetch' da API de Posts (GET /api/trending) virá na branch 'feature/api-posts'
+    console.warn("TrendingDiscussions: API de Trending não implementada.");
+    // setTopics(dadosDaApi);
   }, []);
 
   return (
@@ -44,7 +27,6 @@ export function TrendingDiscussions() {
           Seu espaço de fala!
         </p>
       </div>
-      {/* --- CÓDIGO RESTAURADO ABAIXO --- */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-1">
           Discussões do momento
@@ -75,7 +57,6 @@ export function TrendingDiscussions() {
                   </div>
                 </div>
                 <div className="text-xs font-medium text-tech-purple ml-2">
-                  {/* Usa o index do map para criar o ranking #1, #2, #3... */}
                   #{index + 1}
                 </div>
               </div>

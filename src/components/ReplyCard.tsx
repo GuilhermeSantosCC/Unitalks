@@ -1,159 +1,169 @@
-// src/components/ReplyCard.tsx
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card"; //
-import { Textarea } from "@/components/ui/textarea"; //
-import { Button } from "@/components/ui/button"; //
-import { MessageSquareReply, Trash2, CornerDownRight } from 'lucide-react'; //
-import { db, auth } from '@/firebase'; //
-import { collection, addDoc, serverTimestamp, doc, getDoc, deleteDoc, query, where, orderBy, onSnapshot, writeBatch, getDocs } from "firebase/firestore"; //
-import { User } from "firebase/auth"; //
+import React, { useState } from 'react';
+import { Card, CardContent } from "@/components/ui/card"; 
+import { Textarea } from "@/components/ui/textarea"; 
+import { Button } from "@/components/ui/button"; 
+import { MessageSquareReply, Trash2, CornerDownRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from './ui/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { ReplyResponse } from '@/types'; 
 
-// Interface ReplyData (sem alterações)
-interface ReplyData {
-    id: string;
-    postId: string;
-    userId: string;
-    authorName: string;
-    content: string;
-    timestamp: any;
-    parentReplyId?: string | null;
-} //
-
-// Props do ReplyCard ATUALIZADAS
 interface ReplyCardProps {
-    replyId: string;
-    postId: string;
-    userId: string; // ID do autor DESTA resposta
-    authorName: string;
-    content: string;
-    timestamp: string;
-    currentUser: User | null; // <<< Usuário logado vindo do pai
-    loggedInUserDisplayName: string | null; // <<< Nome do usuário logado vindo do pai
-} //
+    replyData: ReplyResponse;
+    allReplies: ReplyResponse[];
+} 
 
 export const ReplyCard: React.FC<ReplyCardProps> = ({
-    replyId, postId, userId, authorName, content, timestamp,
-    currentUser, // <<< Recebe como prop
-    loggedInUserDisplayName // <<< Recebe como prop
+    replyData,
+    allReplies 
 }) => {
-    // Estados
+    const { id: replyId, post_id: postId, owner_id: userId } = replyData;
+    const authorName = replyData.owner.name;
+    const content = replyData.content;
+    const timestamp = format(new Date(replyData.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR });
+
     const [isReplyingToReply, setIsReplyingToReply] = useState(false);
     const [nestedReplyContent, setNestedReplyContent] = useState('');
-    // Estados currentUser e replyAuthorDisplayName REMOVIDOS
-    const [nestedReplies, setNestedReplies] = useState<ReplyData[]>([]);
     const [showNestedReplies, setShowNestedReplies] = useState(false);
 
-    // useEffect para buscar respostas ANINHADAS
-    useEffect(() => {
-        if (showNestedReplies && postId && replyId) {
-            const repliesRef = collection(db, "posts", postId, "replies");
-            const q = query(repliesRef, where("parentReplyId", "==", replyId), orderBy("timestamp", "asc"));
-            const unsubscribeNested = onSnapshot(q, (snapshot) => {
-                const fetchedNestedReplies = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    let timestampStr = "Agora";
-                    if (data.timestamp) {
-                        const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                        timestampStr = new Date(date).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    }
-                    return { /* ... campos ... */
-                        id: doc.id,
-                        postId: data.postId,
-                        userId: data.userId,
-                        authorName: data.authorName || "Anônimo",
-                        content: data.content || "",
-                        timestamp: timestampStr,
-                        parentReplyId: data.parentReplyId
-                    } as ReplyData;
-                });
-                setNestedReplies(fetchedNestedReplies);
-            });
-            return () => unsubscribeNested();
-        } else {
-            setNestedReplies([]);
-        }
-    }, [showNestedReplies, postId, replyId]); //
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const isLoggedIn = !!user;
+    const isOwner = isLoggedIn && !isAuthLoading && user?.id === userId;
 
-    // handleSendNestedReply (Usa props)
+    const nestedReplies = allReplies.filter(reply => reply.parent_reply_id === replyId);
+
     const handleSendNestedReply = async () => {
-        if (!currentUser) { console.warn("Usuário não logado tentou enviar resposta aninhada."); return; }
-        if (!nestedReplyContent.trim()) { console.warn("Tentativa de enviar resposta aninhada vazia."); return; }
-        const authorNameToSave = loggedInUserDisplayName || currentUser.email || "Anônimo";
-        try {
-            const repliesRef = collection(db, "posts", postId, "replies");
-            await addDoc(repliesRef, { postId: postId, userId: currentUser.uid, authorName: authorNameToSave, content: nestedReplyContent, timestamp: serverTimestamp(), parentReplyId: replyId });
-            setNestedReplyContent(''); setIsReplyingToReply(false); console.log("Resposta aninhada enviada com sucesso!");
-        } catch (error) { console.error("Erro ao enviar resposta aninhada:", error); }
-    }; //
+      if (!isLoggedIn) { toast({ title: "Acesso Negado", description: "Faça login para responder.", variant: "destructive"}); return; }
+      if (!nestedReplyContent.trim()) {
+        toast({ title: "Ops!", description: "A resposta não pode estar vazia.", variant: "destructive"});
+        return;
+      }
+      const token = localStorage.getItem('userToken');
+      if (!token) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
+        return;
+      }
 
-    // handleDeleteReply (Usa prop currentUser)
-    const handleDeleteReply = async () => {
-        if (!currentUser || currentUser.uid !== userId) { console.warn("Tentativa de apagar resposta sem permissão."); return; }
-        if (window.confirm("Tem certeza que deseja apagar esta resposta?")) {
-            try {
-                const replyRef = doc(db, "posts", postId, "replies", replyId);
-                await deleteDoc(replyRef);
-                console.log("Resposta deletada permanentemente!");
-                // Faltaria deletar filhos recursivamente aqui
-            } catch (error) { console.error("Erro ao deletar resposta:", error); }
+      try {
+        const response = await fetch(`http://127.0.0.1:8001/posts/${postId}/replies`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            content: nestedReplyContent,
+            parent_reply_id: replyId
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao enviar resposta.");
         }
-    }; //
+        
+        toast({ title: "Resposta enviada!" });
+        window.location.reload(); 
+
+      } catch (err) {
+         if (err instanceof Error) {
+            toast({ title: "Erro", description: err.message, variant: "destructive" });
+         }
+      }
+    }; 
+
+    // --- FUNÇÃO DE DELETE ATUALIZADA ---
+    const handleDeleteReply = async () => {
+      if (!isOwner) { 
+        toast({ title: "Acesso Negado", description: "Você não é o dono desta resposta.", variant: "destructive"}); 
+        return; 
+      }
+
+      const token = localStorage.getItem('userToken');
+      if (!token) {
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive"});
+        return;
+      }
+      
+      try {
+        // 1. Chama o novo endpoint (DELETE /replies/{id})
+        const response = await fetch(`http://127.0.0.1:8001/replies/${replyId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            // Se der 404 (não achou) ou 403 (não é o dono)
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Não foi possível apagar a resposta.");
+        }
+
+        // 2. Sucesso!
+        toast({ title: "Resposta Apagada" });
+        window.location.reload(); // Recarrega para a resposta sumir
+
+      } catch (err) {
+          if (err instanceof Error) {
+            toast({ title: "Erro", description: err.message, variant: "destructive" });
+          }
+          console.error("Erro ao deletar resposta:", err);
+      }
+    }; 
 
     return (
-        <Card className="bg-muted/50 border-border/30"> {/* */}
-            <CardContent className="p-3 text-sm"> {/* */}
-                {/* Cabeçalho */}
-                <div className="flex items-center gap-2 mb-1 justify-between"> {/* */}
-                    <div className="flex items-center gap-2"> {/* */}
+        <Card className="bg-muted/50 border-border/30"> 
+            <CardContent className="p-3 text-sm"> 
+                <div className="flex items-center gap-2 mb-1 justify-between"> 
+                    <div className="flex items-center gap-2"> 
                         <h5 className="font-semibold text-foreground/90">{authorName}</h5>
                         <span className="text-xs text-muted-foreground">{timestamp}</span>
                     </div>
-                    {currentUser && currentUser.uid === userId && (
-                        <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={handleDeleteReply} title="Apagar Resposta"> <Trash2 className="h-3 w-3" /> </Button> //
+                    {/* O botão de lixeira agora funciona */}
+                    {isOwner && (
+                        <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={handleDeleteReply} title="Apagar Resposta"> <Trash2 className="h-3 w-3" /> </Button>
                     )}
                 </div>
 
-                {/* Conteúdo */}
-                <p className="text-foreground/80 leading-relaxed mb-2">{content}</p> {/* */}
+                <p className="text-foreground/80 leading-relaxed mb-2">{content}</p> 
 
-                {/* Botões de Ação */}
-                <div className="flex items-center gap-2"> {/* */}
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                <div className="flex items-center gap-2"> 
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs"
                         onClick={() => setIsReplyingToReply(!isReplyingToReply)}
-                        disabled={!currentUser} // <<< Usa prop currentUser
-                        title={!currentUser ? "Faça login para responder" : "Responder"}
+                        disabled={!isLoggedIn}
+                        title={!isLoggedIn ? "Faça login para responder" : "Responder"}
                     >
                         <MessageSquareReply className="h-3 w-3 mr-1" /> Responder
-                    </Button> {/* */}
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs" onClick={() => setShowNestedReplies(!showNestedReplies)}> <CornerDownRight className="h-3 w-3 mr-1" /> {showNestedReplies ? "Ocultar" : "Ver"} Respostas </Button> {/* */}
+                    </Button> 
+                    
+                    {nestedReplies.length > 0 && (
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-auto p-1 text-xs" onClick={() => setShowNestedReplies(!showNestedReplies)}> 
+                        <CornerDownRight className="h-3 w-3 mr-1" /> 
+                        {showNestedReplies ? "Ocultar" : `Ver ${nestedReplies.length} ${nestedReplies.length > 1 ? "respostas" : "resposta"}`}
+                      </Button> 
+                    )}
                 </div>
 
-                 {/* Campo para Resposta Aninhada */}
                  {isReplyingToReply && (
-                    <div className="mt-2 space-y-2"> {/* */}
-                        <Textarea placeholder={`Respondendo a ${authorName}...`} value={nestedReplyContent} onChange={(e) => setNestedReplyContent(e.target.value)} className="bg-input border-tech-gray focus:border-tech-purple text-xs" rows={2}/> {/* */}
-                        <div className="flex justify-end gap-2"> {/* */}
+                    <div className="mt-2 space-y-2"> 
+                        <Textarea placeholder={`Respondendo a ${authorName}...`} value={nestedReplyContent} onChange={(e) => setNestedReplyContent(e.target.value)} className="bg-input border-tech-gray focus:border-tech-purple text-xs" rows={2}/> 
+                        <div className="flex justify-end gap-2"> 
                             <Button variant="ghost" size="sm" onClick={() => { setIsReplyingToReply(false); setNestedReplyContent(''); }}> Cancelar </Button>
-                             <Button size="sm" className="bg-tech-purple hover:bg-tech-purple-dark text-white" onClick={handleSendNestedReply}> Enviar </Button> {/* */}
+                             <Button size="sm" className="bg-tech-purple hover:bg-tech-purple-dark text-white" onClick={handleSendNestedReply}> Enviar </Button> 
                         </div>
                     </div>
                  )}
 
-                 {/* Bloco para Exibir Respostas ANINHADAS */}
                  {showNestedReplies && (
-                    <div className="mt-3 pl-4 border-l-2 border-border/30 space-y-2"> {/* */}
+                    <div className="mt-3 pl-4 border-l-2 border-border/30 space-y-2"> 
                         {nestedReplies.length > 0 ? (
                             nestedReplies.map(nestedReply => (
                                 <ReplyCard
                                     key={nestedReply.id}
-                                    replyId={nestedReply.id}
-                                    postId={postId}
-                                    userId={nestedReply.userId}
-                                    authorName={nestedReply.authorName}
-                                    content={nestedReply.content || ""}
-                                    timestamp={nestedReply.timestamp}
-                                    currentUser={currentUser} // <<< Passa adiante
-                                    loggedInUserDisplayName={loggedInUserDisplayName} // <<< Passa adiante
+                                    replyData={nestedReply} 
+                                    allReplies={allReplies}
                                 />
                             ))
                         ) : (

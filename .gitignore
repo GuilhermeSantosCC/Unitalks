@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ignorar arquivos de ambiente do Python
+backend/user_service/venv/
+backend/user_service/.env
+
+# Ignorar caches do Python
+__pycache__/
+backend/user_service/__pycache__/
+
+# Ignorar o serviço de posts
+backend/post_service/venv/
+backend/post_service/.env
+backend/post_service/__pycache__/

@@ -1,16 +1,13 @@
-
-
 import React, { 
     useState, 
     FormEvent, 
     ChangeEvent 
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { useToast } from "@/components/ui/use-toast";
 import './Login.css'; 
 
 const Register: React.FC = () => {
-  // 1. Estados para os dados do formulário
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [college, setCollege] = useState<string>(''); 
@@ -22,6 +19,7 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -29,74 +27,63 @@ const Register: React.FC = () => {
     setLoading(true);
     setError('');
 
-    // --- 2.1 Validações de Formulário ---
+    // Validações de Front-end
     if (!name || !email || !college || !course || !password || !confirmPassword) {
       setError('Por favor, preencha todos os campos obrigatórios.');
       setLoading(false);
       return;
     }
-
     if (password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');
       setLoading(false);
       return;
     }
-
     if (password !== confirmPassword) {
       setError('A senha e a confirmação de senha não coincidem.');
       setLoading(false);
       return;
     }
 
-    // Dados a serem enviados para o backend
-    const userData = { name, email, college, course, password };
-    console.log('Tentativa de Registro com:', userData);
-
-    // --- 2.2 Lógica de Chamada à API (Integração Real) ---
-
+    const userData = {
+      name: name,
+      email: email,
+      college: college,
+      course: course,
+      password: password
+    };
+    
     try {
-        // *** SUBSTITUA A SIMULAÇÃO ABAIXO PELA SUA CHAMADA REAL À API! ***
-        
-        // Exemplo:
-        /*
-        const response = await fetch('SUA_URL_DO_BACKEND/register', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData) 
-        });
-        
-        const data = await response.json();
+      // Note: A URL aponta para a porta 8000 (user_service)
+      const response = await fetch("http://127.0.0.1:8000/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData), 
+      });
 
-        if (response.ok && data.token) {
-            localStorage.setItem('userToken', data.token);
-            navigate('/'); // Redireciona para a Home
-        } else {
-            setError(data.message || 'Erro ao tentar realizar o cadastro.'); 
-        }
-        */
+      const data = await response.json();
 
-        // SIMULAÇÃO DE SUCESSO:
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const data = { success: true, token: 'fake-token-de-registro' };
+      if (!response.ok) {
+        setError(data.detail || "Ocorreu um erro desconhecido no cadastro.");
+        setLoading(false);
+        return;
+      }
 
-        if (data.success) {
-            localStorage.setItem('userToken', data.token);
-            alert('Cadastro SIMULADO realizado com sucesso! Redirecionando...');
-            navigate('/');
-        } else {
-             // Simulação de erro (ex: email já existe)
-             setError('Erro de simulação: Email já cadastrado.');
-        }
-
+      toast({
+        title: "Sucesso!",
+        description: "Conta criada. Agora você pode fazer o login.",
+      });
+      navigate('/login'); 
 
     } catch (err) {
-        setError('Ocorreu um erro na comunicação com o servidor.');
+      // Erro de rede (API desligada ou CORS)
+      console.error("Falha ao conectar na API de Registro:", err);
+      setError('Não foi possível conectar ao servidor. Tente novamente.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
-
+  // JSX (sem alteração)
   return (
     <div className="login-container">
       <div className="login-box">
@@ -105,7 +92,6 @@ const Register: React.FC = () => {
 
         <form onSubmit={handleSubmit}>
           
-          {/* Campo de Nome */}
           <div className="form-group">
             <label htmlFor="name">Nome:</label>
             <input
@@ -118,7 +104,6 @@ const Register: React.FC = () => {
             />
           </div>
 
-          {/* Campo de Email */}
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input
@@ -131,7 +116,6 @@ const Register: React.FC = () => {
             />
           </div>
 
-          {/* Campo de Faculdade */}
           <div className="form-group">
             <label htmlFor="college">Faculdade/Universidade:</label>
             <input
@@ -144,7 +128,6 @@ const Register: React.FC = () => {
             />
           </div>
           
-          {/* Campo de Curso */}
           <div className="form-group">
             <label htmlFor="course">Curso:</label>
             <input
@@ -157,7 +140,6 @@ const Register: React.FC = () => {
             />
           </div>
 
-          {/* Campo de Senha */}
           <div className="form-group">
             <label htmlFor="password">Senha:</label>
             <input
@@ -170,7 +152,6 @@ const Register: React.FC = () => {
             />
           </div>
           
-          {/* Campo de Confirmação de Senha */}
           <div className="form-group">
             <label htmlFor="confirm-password">Confirme a Senha:</label>
             <input
@@ -182,7 +163,6 @@ const Register: React.FC = () => {
               required
             />
           </div>
-
 
           {error && <p className="error-message">{error}</p>}
 
