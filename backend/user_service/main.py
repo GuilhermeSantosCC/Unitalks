@@ -11,10 +11,13 @@ app = FastAPI()
 
 # --- Configuração do CORS ---
 origins = [
-    "http://localhost:8080", 
+    "http://localhost:8080",
+    "http://localhost:8081",  
     "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081",      
     "http://192.168.0.148:8080",
-    "http://127.0.0.1:8001",
+    "http://192.168.0.148:8081",  
+    "http://127.0.0.1:8001",      
 ]
 
 app.add_middleware(

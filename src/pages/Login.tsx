@@ -66,9 +66,8 @@ const Login: React.FC = () => {
       navigate('/');
 
     } catch (err) {
-      // Erro de rede (API desligada ou CORS)
       console.error("Falha ao conectar na API de Login:", err);
-      setError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
+      setError('Não foi possível conectar ao servidor.');
     } finally {
       setLoading(false);
     }

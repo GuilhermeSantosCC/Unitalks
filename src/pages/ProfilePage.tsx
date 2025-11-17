@@ -3,16 +3,15 @@
 import * as React from "react";
 import { ProfileEditModal } from "@/components/ui/ProfileEditModal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, User, Link, Edit } from "lucide-react";
+import { User, Link, Edit } from "lucide-react";
 import { CommentCard } from "@/components/CommentCard";
 import { PostCommentModal } from "@/components/PostCommentModal";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { SearchSidebar } from "@/components/SearchSidebar";
 
-// Interface para os dados do perfil (será usado pela API)
 interface UserProfile {
   username: string;
   profileName: string;
@@ -23,7 +22,6 @@ interface UserProfile {
   uniLink: string;
 }
 
-// Interface para os posts (será usado pela API)
 interface PostData {
   id: string;
   userId: string;
@@ -32,14 +30,8 @@ interface PostData {
   agreeCount: number;
   disagreeCount: number;
   timestamp: string;
+  replies: any[]; 
 }
-
-// Mock (dados falsos) apenas para a barra lateral
-const mockDiscussions = [
-  { id: 1, title: "TypeScript vs JavaScript", views: "1.142", comments: "98" },
-  { id: 2, title: "React vs Vue.js", views: "1.117", comments: "45" },
-  { id: 3, title: "Dark Mode é essencial?", views: "1.88", comments: "85" },
-];
 
 export function ProfilePage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -57,29 +49,20 @@ export function ProfilePage() {
       return;
     }
 
-    // TODO: Implementar 'fetch' para /api/users/me (usando token)
-    // Isso trará os dados do usuário logado
-    console.warn("ProfilePage: API /api/users/me não implementada.");
-    // Por enquanto, usamos dados falsos
+    // TODO: Implementar 'fetch' para /api/users/me na branch 'api-profile'
     setUserProfile({
-      username: "@carregando...",
-      profileName: "Carregando Perfil...",
-      bio: "Carregando bio...",
+      username: "@usuario",
+      profileName: "Carregando...",
+      bio: "Aguardando implementação da API de perfil...",
       photoUrl: "",
       linkedin: "",
       instagram: "",
       uniLink: "",
     });
-
-    // TODO: Implementar 'fetch' para /api/users/me/posts (usando token)
-    console.warn("ProfilePage: API /api/users/me/posts não implementada.");
-    // setUserPosts(dadosDosPosts);
-
   }, [navigate]);
 
   const handleSaveProfile = async (data: Omit<UserProfile, 'photoUrl' | 'isEditing'>) => {
-    // TODO: Implementar 'fetch' para (PUT /api/users/me) para salvar o perfil
-    console.warn("ProfilePage: API de Edição de Perfil não implementada.");
+    console.warn("API de Edição de Perfil não implementada.");
     toast({ title: "Simulado", description: "Perfil salvo (simulação)." });
     setUserProfile((prev) => prev ? {
       ...prev,
@@ -89,49 +72,26 @@ export function ProfilePage() {
   };
 
   const submitNewPost = async (content: string) => {
-     // TODO: Implementar 'fetch' para (POST /api/posts)
      console.warn("API de Posts não implementada (via ProfilePage).");
-     toast({ title: "Post (Simulado)", description: "API de Posts ainda não conectada." });
      setIsPostModalOpen(false);
   };
 
-  // Se o perfil ainda não foi carregado
   if (!userProfile) {
-    return (
-       <div className="min-h-screen bg-[#111111] text-white p-8 text-center">
-         Carregando perfil...
-       </div>
-    );
+    return <div className="min-h-screen bg-[#111111] text-white p-8 text-center">Carregando...</div>;
   }
 
   return (
     <div className="min-h-screen bg-[#111111] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Coluna lateral */}
-        <aside className="lg:col-span-3 bg-[#1D1D1D] rounded-lg p-4 h-fit">
-          <h2 className="text-lg font-bold mb-4 border-b border-gray-700 pb-2">
-            Discussões do momento
-          </h2>
-          <nav>
-            {mockDiscussions.map((d, index) => (
-              <a
-                key={d.id}
-                href="#"
-                className="flex justify-between items-center p-2 rounded-md hover:bg-[#252525] transition-colors mb-2 group"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium group-hover:text-purple-400">{d.title}</span>
-                  <span className="text-xs text-gray-400">
-                    {d.views} 👁️ | {d.comments} 💬
-                  </span>
-                </div>
-                <span className="text-xs text-gray-500 font-bold">#{index + 1}</span>
-              </a>
-            ))}
-          </nav>
+        
+        {/* Coluna lateral ESQUERDA (Vazia ou Trending futuramente) */}
+        <aside className="lg:col-span-3 bg-[#1D1D1D] rounded-lg p-4 h-fit hidden lg:block">
+          <div className="text-sm text-gray-500 text-center">
+            Espaço para Trending Topics
+          </div>
         </aside>
 
-        {/* Perfil central */}
+        {/* Perfil CENTRAL */}
         <main className="lg:col-span-6">
           <h1 className="text-xl font-bold mb-4">UniTalks - Seu espaço de fala!</h1>
 
@@ -143,7 +103,6 @@ export function ProfilePage() {
             <CardContent className="p-6 -mt-16">
               <div className="flex items-end space-x-4">
                 <div className="w-24 h-24 rounded-full bg-gray-700 border-4 border-[#1D1D1D] flex items-center justify-center">
-                  {/* TODO: Ligar com userProfile.photoUrl */}
                   <User className="w-12 h-12 text-gray-400" />
                 </div>
                 <div className="flex-grow">
@@ -162,47 +121,10 @@ export function ProfilePage() {
 
               <div className="mt-4">
                 <div className="flex flex-wrap gap-4 text-sm text-gray-400 mb-2">
-                  {userProfile.linkedin && (
-                    <a
-                      href={userProfile.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-purple-400 transition-colors"
-                    >
-                      <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/480px-LinkedIn_logo_initials.png"
-                        alt="LinkedIn"
-                        className="w-4 h-4 mr-1"
-                      />
-                      LinkedIn
-                    </a>
-                  )}
-                  {userProfile.instagram && (
-                    <a
-                      href={userProfile.instagram}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-purple-400 transition-colors"
-                    >
-                      <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Instagram_logo_2022.svg/1000px-Instagram_logo_2022.svg.png"
-                        alt="Instagram"
-                        className="w-4 h-4 mr-1"
-                      />
-                      Instagram
-                    </a>
-                  )}
-                  {userProfile.uniLink && (
-                    <a
-                      href={userProfile.uniLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-purple-400 transition-colors"
-                    >
-                      <Link className="w-4 h-4 mr-1" />
-                      {userProfile.uniLink}
-                    </a>
-                  )}
+                   <div className="flex items-center gap-2">
+                      <Link className="w-4 h-4" />
+                      <span>Links sociais indisponíveis</span>
+                   </div>
                 </div>
 
                 <p className="text-base text-gray-300 mt-3">
@@ -214,7 +136,7 @@ export function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Tabs dos comentários */}
+          {/* Tabs */}
           <Tabs defaultValue="feitos" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-[#252525] border border-gray-700">
               <TabsTrigger value="feitos">Comentários Feitos ({userPosts.length})</TabsTrigger>
@@ -224,11 +146,12 @@ export function ProfilePage() {
             <TabsContent value="feitos" className="mt-4 grid gap-4">
               {userPosts.length > 0 ? (
                 userPosts.map((post) => (
+                  // @ts-ignore
                   <CommentCard key={post.id} {...post} />
                 ))
               ) : (
                 <p className="text-gray-400 text-center p-8 bg-[#1D1D1D] rounded-lg">
-                  Nenhum comentário ainda.
+                  Nenhum comentário carregado.
                 </p>
               )}
             </TabsContent>
@@ -240,30 +163,12 @@ export function ProfilePage() {
           </Tabs>
         </main>
 
-        {/* Barra lateral direita */}
+        {/* Coluna lateral DIREITA (Agora com Navegação!) */}
         <aside className="lg:col-span-3">
-          <Card className="bg-[#1D1D1D] p-4 mb-6 h-fit">
-            <CardTitle className="text-lg font-bold mb-4 border-b border-gray-700 pb-2">
-              Aba de Pesquisa
-            </CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar discussões..."
-                className="pl-10 bg-gray-700 text-white border-gray-600"
-              />
-            </div>
-            <Button
-              className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold"
-              onClick={() => setIsPostModalOpen(true)}
-            >
-              + Adicionar Comentário
-            </Button>
-          </Card>
+            <SearchSidebar />
         </aside>
       </div>
 
-      {/* Modais */}
       <ProfileEditModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

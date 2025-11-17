@@ -13,9 +13,13 @@ app = FastAPI()
 # --- Configuração do CORS ---
 origins = [
     "http://localhost:8080",
+    "http://localhost:8081", 
     "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081",
     "http://192.168.0.148:8080",
+    "http://192.168.0.148:8081",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -24,14 +28,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Endpoints de Leitura e Descoberta ---
-
+# --- Endpoint de Leitura (Com Paginação) ---
 @app.get("/posts/", response_model=List[schemas.PostResponse])
-def get_posts(db: Session = Depends(database.get_db)):
+def get_posts(
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(database.get_db)
+):
+
     posts = db.query(models.Post).options(
         joinedload(models.Post.owner), 
         joinedload(models.Post.replies).joinedload(models.Reply.owner)
-    ).order_by(models.Post.created_at.desc()).all()
+    ).order_by(models.Post.created_at.desc()).offset(skip).limit(limit).all()
     
     return posts
 
