@@ -9,16 +9,10 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# --- Configuração do CORS ---
-origins = [
-    "http://localhost:8080",
-    "http://localhost:8081",  
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:8081",      
-    "http://192.168.0.148:8080",
-    "http://192.168.0.148:8081",  
-    "http://127.0.0.1:8001",      
-]
+# --- "OPÇÃO NUCLEAR" PARA DESENVOLVIMENTO ---
+# Isso libera qualquer site de acessar sua API.
+# Use apenas enquanto estivermos testando localmente.
+origins = ["*"] 
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +21,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# endpoint PUT /users/me
+@app.put("/users/me", response_model=schemas.UserResponse)
+def update_user_me(
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if user_update.username:
+        existing_user = db.query(models.User).filter(models.User.username == user_update.username).first()
+        if existing_user and existing_user.id != current_user.id:
+             raise HTTPException(status_code=400, detail="Este nome de usuário já está em uso.")
+
+    user_data = user_update.dict(exclude_unset=True)
+    for key, value in user_data.items():
+        setattr(current_user, key, value)
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
 
 # --- Endpoint de Registro ---
 @app.post("/register/", response_model=schemas.UserResponse)
@@ -70,7 +94,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- NOVO ENDPOINT ---
 # Este endpoint é protegido e retorna o usuário logado
 @app.get("/users/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
