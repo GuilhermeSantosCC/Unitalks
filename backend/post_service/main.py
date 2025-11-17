@@ -11,14 +11,16 @@ models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
 
 # --- Configuração do CORS ---
-origins = [
-    "http://localhost:8080",
-    "http://localhost:8081", 
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:8081",
-    "http://192.168.0.148:8080",
-    "http://192.168.0.148:8081",
-]
+
+origins = ["*"]  # <--- LIBERA TUDO
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -215,3 +217,25 @@ def delete_reply(
     reply_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+# --- Endpoint: Posts de um usuário específico ---
+@app.get("/posts/user/{user_id}", response_model=List[schemas.PostResponse])
+def get_user_posts(user_id: int, db: Session = Depends(database.get_db)):
+    posts = db.query(models.Post).filter(models.Post.owner_id == user_id).options(
+        joinedload(models.Post.owner),
+        joinedload(models.Post.replies).joinedload(models.Reply.owner)
+    ).order_by(models.Post.created_at.desc()).all()
+    return posts
+
+# --- Endpoint: Posts curtidos por um usuário ---
+@app.get("/posts/user/{user_id}/liked", response_model=List[schemas.PostResponse])
+def get_user_liked_posts(user_id: int, db: Session = Depends(database.get_db)):
+    # Faz um JOIN entre Post e Vote onde o voto é '1' (agree) e o usuário é o user_id
+    posts = db.query(models.Post).join(models.Vote).filter(
+        models.Vote.user_id == user_id,
+        models.Vote.vote_type == 1 # Apenas Likes/Concordo
+    ).options(
+        joinedload(models.Post.owner),
+        joinedload(models.Post.replies).joinedload(models.Reply.owner)
+    ).order_by(models.Vote.post_id.desc()).all() # Ordena pelos likes mais recentes
+    return posts

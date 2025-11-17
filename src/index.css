@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Definição do Design System do UniTalks */
 
 @layer base {
   :root {
@@ -88,9 +86,24 @@ All colors MUST be HSL.
 @layer base {
   * {
     @apply border-border;
+    /* Reset de box-sizing para garantir medidas certas */
+    box-sizing: border-box;
   }
 
   body {
     @apply bg-background text-foreground;
+    
+    /* --- AQUI ESTÁ A CORREÇÃO DA BARRA PRETA --- */
+    margin: 0;
+    padding: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden; /* Evita rolagem lateral */
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
   }
 }
