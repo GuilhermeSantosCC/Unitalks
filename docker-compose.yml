@@ -11,9 +11,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   user_service:
-    build:
+    build: ./backend/user_service
       context: .
-      dockerfile: Dockerfile.user
+      dockerfile: Dockerfile
     ports: ["8000:8000"]
     environment:
       DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
@@ -21,9 +21,9 @@ services:
     depends_on: [postgres]
 
   post_service:
-    build:
+    build: ./backend/post_service
       context: .
-      dockerfile: Dockerfile.post  # Similar ao Dockerfile.user
+      dockerfile: Dockerfile
     ports: ["8001:8001"]
     environment:
       DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
@@ -52,4 +52,5 @@ services:
 
 volumes:
   pgdata:
+
   grafana_data:
