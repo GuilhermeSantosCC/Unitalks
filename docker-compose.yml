@@ -1,0 +1,55 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:18.1
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  user_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
+      SECRET_KEY: ​SECRET_KEY
+    depends_on: [postgres]
+
+  post_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.post  # Similar ao Dockerfile.user
+    ports: ["8001:8001"]
+    environment:
+      DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
+      SECRET_KEY: ​SECRET_KEY
+    depends_on: [postgres]
+
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80"]
+    volumes: ["./nginx/default.conf:/etc/nginx/conf.d/default.conf"]
+    depends_on: [user_service, post_service]
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-6.0
+    ports: ["10051:10051"]
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    depends_on: [postgres]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    volumes: ["grafana_data:/var/lib/grafana"]
+
+volumes:
+  pgdata:
+  grafana_data:
