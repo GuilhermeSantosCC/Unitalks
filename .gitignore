@@ -1,37 +1,10 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
+.env\n__pycache__\n*.sqlite3\ndist/
 node_modules
 dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+__pycache__
+venv
+.env
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Ignorar arquivos de ambiente do Python
-backend/user_service/venv/
-backend/user_service/.env
-
-# Ignorar caches do Python
-__pycache__/
-backend/user_service/__pycache__/
-
-# Ignorar o serviço de posts
-backend/post_service/venv/
-backend/post_service/.env
-backend/post_service/__pycache__/
+.idea
+.vscode
+postgres_data
