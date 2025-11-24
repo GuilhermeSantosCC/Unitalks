@@ -31,6 +31,16 @@ services:
       SECRET_KEY: ​SECRET_KEY
     depends_on: [postgres]
 
+  frontend:
+    build: ./frontend
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8080:80" 
+    networks:
+      - app-network
+
   nginx:
     image: nginx:alpine
     ports: ["80:80"]
@@ -55,4 +65,5 @@ volumes:
   pgdata:
 
   grafana_data:
+
 
