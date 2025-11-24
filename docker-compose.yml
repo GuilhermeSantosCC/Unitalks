@@ -32,7 +32,7 @@ services:
     depends_on: [postgres]
 
   frontend:
-    build: ./frontend
+    build: ./src
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend
@@ -65,5 +65,6 @@ volumes:
   pgdata:
 
   grafana_data:
+
 
 
