@@ -45,7 +45,7 @@ services:
     image: zabbix/zabbix-server-pgsql:alpine-6.0-latest
     ports: ["10051:10051"]
     environment:
-      DB_SERVER_HOST: db
+      DB_SERVER_HOST: postgres
       POSTGRES_USER: unitalks_admin
       POSTGRES_PASSWORD: c9_n32ub!31_1k_ld_Rs
     depends_on: [postgres]
