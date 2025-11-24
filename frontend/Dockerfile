@@ -1,26 +1,32 @@
-# ----- Estágio 1: Build -----
-FROM node:18-alpine AS builder
+# --- Estágio 1: Build ---
+# Usa uma imagem Node para construir o projeto
+FROM node:18-alpine AS build
 
+# ... (início do arquivo)
 WORKDIR /app
 
-# Copiar package.json e instalar dependências
-COPY package.json ./
-RUN npm install
+# Copia APENAS os arquivos de dependência primeiro
+COPY package.json package-lock.json* bun.lockb* ./
 
-# Copiar o resto do código-fonte
+# Instala as dependências (o flag --legacy-peer-deps ajuda se houver conflito entre bun/npm)
+RUN npm install --legacy-peer-deps
+
+# Copia o resto do código (agora organizado na pasta src)
 COPY . .
 
-# Rodar o script de build (ex: 'npm run build')
+# Faz o build
 RUN npm run build
 
-# ----- Estágio 2: Serve -----
-FROM nginx:1.25-alpine
+# --- Estágio 2: Produção ---
+# Usa o Nginx para servir os arquivos estáticos
+FROM nginx:alpine
 
-# Copiar a build do estágio anterior para a pasta do Nginx
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copia os arquivos gerados no estágio anterior para a pasta pública do Nginx
+# O Vite gera os arquivos na pasta 'dist' por padrão
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Expor a porta 80
+# Expõe a porta 80 (padrão web)
 EXPOSE 80
 
-# Comando para iniciar o Nginx
+# Inicia o Nginx
 CMD ["nginx", "-g", "daemon off;"]
