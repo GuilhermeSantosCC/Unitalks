@@ -4,9 +4,10 @@ services:
     image: postgres:18.1
     ports: ["5432:5432"]
     environment:
-      POSTGRES_DB: appdb
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: unitalks_db
+      POSTGRES_USER: unitalks_admin
+      POSTGRES_PASSWORD: c9_n32ub!31_1k_ld_Rs
+      SECRET_KEY: ${SECRET_KEY}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -16,7 +17,7 @@ services:
       dockerfile: Dockerfile
     ports: ["8000:8000"]
     environment:
-      DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
+      DATABASE_URL: postgresql://unitalks_admin:c9_n32ub!31_1k_ld_Rs@db:5432/unitalks_db
       SECRET_KEY: ​SECRET_KEY
     depends_on: [postgres]
 
@@ -26,7 +27,7 @@ services:
       dockerfile: Dockerfile
     ports: ["8001:8001"]
     environment:
-      DATABASE_URL: postgresql://user:pass@postgres:5432/appdb
+      DATABASE_URL: postgresql://unitalks_admin:c9_n32ub!31_1k_ld_Rs@db:5432/unitalks_db
       SECRET_KEY: ​SECRET_KEY
     depends_on: [postgres]
 
@@ -40,9 +41,9 @@ services:
     image: zabbix/zabbix-server-pgsql:alpine-6.0
     ports: ["10051:10051"]
     environment:
-      DB_SERVER_HOST: postgres
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
+      DB_SERVER_HOST: db
+      POSTGRES_USER: unitalks_admin
+      POSTGRES_PASSWORD: c9_n32ub!31_1k_ld_Rs
     depends_on: [postgres]
 
   grafana:
@@ -54,3 +55,4 @@ volumes:
   pgdata:
 
   grafana_data:
+
