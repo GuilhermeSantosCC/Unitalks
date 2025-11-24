@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definição do Design System do UniTalks */
+
+@layer base {
+  :root {
+    /* Dark Tech Theme - Main Colors */
+    --background: 220 13% 5%;
+    --foreground: 210 40% 95%;
+
+    --card: 220 13% 8%;
+    --card-foreground: 210 40% 95%;
+
+    --popover: 220 13% 8%;
+    --popover-foreground: 210 40% 95%;
+
+    /* Tech Purple Primary */
+    --primary: 270 95% 65%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Dark Secondary */
+    --secondary: 220 13% 12%;
+    --secondary-foreground: 210 40% 95%;
+
+    --muted: 220 13% 10%;
+    --muted-foreground: 215 20.2% 65%;
+
+    /* Neon Green Accent */
+    --accent: 120 100% 65%;
+    --accent-foreground: 220 13% 5%;
+
+    /* Disagree Red */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 15%;
+    --input: 220 13% 12%;
+    --ring: 270 95% 65%;
+
+    --radius: 0.75rem;
+
+    /* Custom Tech Colors */
+    --tech-purple: 270 95% 65%;
+    --tech-purple-dark: 270 95% 45%;
+    --tech-green: 120 100% 65%;
+    --tech-green-dark: 120 100% 45%;
+    --tech-gray: 220 13% 15%;
+    --tech-gray-light: 220 13% 25%;
+
+    /* Gradients */
+    --gradient-tech: linear-gradient(135deg, hsl(var(--tech-purple)), hsl(var(--tech-green)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(220 13% 10%));
+    --glow-purple: 0 0 20px hsl(var(--tech-purple) / 0.3);
+    --glow-green: 0 0 20px hsl(var(--tech-green) / 0.3);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Same as root since we're dark by default */
+    --background: 220 13% 5%;
+    --foreground: 210 40% 95%;
+    --card: 220 13% 8%;
+    --card-foreground: 210 40% 95%;
+    --popover: 220 13% 8%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 270 95% 65%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 13% 12%;
+    --secondary-foreground: 210 40% 95%;
+    --muted: 220 13% 10%;
+    --muted-foreground: 215 20.2% 65%;
+    --accent: 120 100% 65%;
+    --accent-foreground: 220 13% 5%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 15%;
+    --input: 220 13% 12%;
+    --ring: 270 95% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    /* Reset de box-sizing para garantir medidas certas */
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    
+    /* --- AQUI ESTÁ A CORREÇÃO DA BARRA PRETA --- */
+    margin: 0;
+    padding: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden; /* Evita rolagem lateral */
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+}
