@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:18.1
+    image: postgres:16-alpine
     ports: ["5432:5432"]
     environment:
       POSTGRES_DB: unitalks_db
@@ -12,9 +12,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   user_service:
-    build:
-      context: ./backend/user_service
-      dockerfile: Dockerfile
+    build: ./backend/user_service
     ports: ["8000:8000"]
     environment:
       DATABASE_URL: postgresql://unitalks_admin:c9_n32ub!31_1k_ld_Rs@postgres:5432/unitalks_db
@@ -22,9 +20,7 @@ services:
     depends_on: [postgres]
 
   post_service:
-    build:
-      context: ./backend/post_service
-      dockerfile: Dockerfile
+    build: ./backend/post_service
     ports: ["8001:8001"]
     environment:
       DATABASE_URL: postgresql://unitalks_admin:c9_n32ub!31_1k_ld_Rs@postgres:5432/unitalks_db
@@ -32,9 +28,7 @@ services:
     depends_on: [postgres]
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
     container_name: frontend
     ports:
       - "8080:80"
@@ -48,7 +42,7 @@ services:
     depends_on: [user_service, post_service]
 
   zabbix-server:
-    image: zabbix/zabbix-server-pgsql:alpine-6.0
+    image: zabbix/zabbix-server-pgsql:alpine-6.0-latest
     ports: ["10051:10051"]
     environment:
       DB_SERVER_HOST: db
@@ -66,5 +60,8 @@ volumes:
 
   grafana_data:
 
+networks:
+  app-network:  # ← Definição EXATA da rede
+    driver: bridge  # Driver padrão (opcional, mas recomendado)
 
 
