@@ -162,3 +162,16 @@ def get_user_following(user_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     
     return user.following
+
+# --- Endpoint Público de Perfil ---
+@app.get("/users/{username}", response_model=schemas.UserResponse)
+def get_user_public_profile(username: str, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.username == username).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    user.followers_count = len(user.followers)
+    user.following_count = len(user.following)
+    
+    return user

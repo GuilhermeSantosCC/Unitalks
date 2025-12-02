@@ -6,6 +6,7 @@ from typing import Optional, List, Literal # <-- 'Literal' está no lugar corret
 class UserResponse(BaseModel):
     id: int
     name: str
+    username: str
     email: EmailStr
     college: Optional[str] = None
 
